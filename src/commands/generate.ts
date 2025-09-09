@@ -1,0 +1,129 @@
+import { Command } from 'commander';
+import chalk from 'chalk';
+import ora from 'ora';
+import { CloudFormationReader } from './cloudformation-reader';
+import { JavaGenerator } from './java-generator-wrapper';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface GenerateOptions {
+  stack?: string;
+  region?: string;
+  table?: string;
+  package: string;
+  output: string;
+}
+
+export async function generateCommand(options: GenerateOptions): Promise<void> {
+  try {
+    if (!options.stack) {
+      console.error(chalk.red('Error: --stack is required'));
+      process.exit(1);
+    }
+
+    if (!options.package) {
+      console.error(chalk.red('Error: --package is required'));
+      process.exit(1);
+    }
+
+    await generateFromStack(options);
+  } catch (error) {
+    console.error(chalk.red('✗ Generation failed:'), error instanceof Error ? error.message : error);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
+    process.exit(1);
+  }
+}
+
+async function generateFromStack(options: GenerateOptions): Promise<void> {
+  const spinner = ora('Reading CloudFormation stack...').start();
+  
+  try {
+    // Read stack outputs
+    const cloudFormationReader = new CloudFormationReader();
+    const stackOutputs = await cloudFormationReader.readStackOutputs(options.stack!, options.region || 'us-east-1');
+    
+    spinner.succeed('Stack outputs read successfully');
+    console.log(chalk.green('  Mode:'), stackOutputs.getMode());
+    console.log(chalk.green('  Region:'), stackOutputs.getRegion());
+    console.log(chalk.green('  Account:'), stackOutputs.getAccountId());
+    
+    // List available tables
+    const availableTables = await cloudFormationReader.listChaimTables(stackOutputs);
+    console.log(chalk.green('  Available tables:'), availableTables.join(', '));
+    
+    if (options.table && !availableTables.includes(options.table)) {
+      console.error(chalk.red(`Error: Table '${options.table}' not found in stack`));
+      console.error(chalk.red('Available tables:'), availableTables.join(', '));
+      process.exit(1);
+    }
+    
+    // Generate for specific table or all tables
+    if (options.table) {
+      await generateForTable(cloudFormationReader, stackOutputs, options.table, options);
+    } else {
+      await generateForAllTables(cloudFormationReader, stackOutputs, options);
+    }
+  } catch (error) {
+    spinner.fail('Failed to read stack outputs');
+    throw error;
+  }
+}
+
+async function generateForTable(
+  reader: CloudFormationReader,
+  stackOutputs: any,
+  table: string,
+  options: GenerateOptions
+): Promise<void> {
+  const spinner = ora(`Generating SDK for table: ${table}`).start();
+  
+  try {
+    const tableMetadata = await reader.extractTableMetadata(stackOutputs, table);
+    const schemaData = tableMetadata.getSchemaData();
+    
+    // Convert JSON to BprintSchema
+    const schema = JSON.parse(JSON.stringify(schemaData));
+    
+    // Generate code using Java generator
+    const javaGenerator = new JavaGenerator();
+    await javaGenerator.generate(schema, options.package, options.output, tableMetadata);
+    
+    spinner.succeed('SDK generated successfully');
+    console.log(chalk.green('  Output directory:'), path.resolve(options.output));
+    console.log(chalk.green('  Package:'), options.package);
+    console.log(chalk.green('  Entity:'), schema.entity.name);
+    console.log(chalk.green('  Table:'), table);
+  } catch (error) {
+    spinner.fail('Failed to generate SDK');
+    throw error;
+  }
+}
+
+async function generateForAllTables(
+  reader: CloudFormationReader,
+  stackOutputs: any,
+  options: GenerateOptions
+): Promise<void> {
+  const tables = await reader.listChaimTables(stackOutputs);
+  
+  if (tables.length === 0) {
+    console.error(chalk.red('Error: No Chaim tables found in stack'));
+    process.exit(1);
+  }
+  
+  const spinner = ora(`Generating SDK for ${tables.length} tables`).start();
+  
+  try {
+    for (const table of tables) {
+      console.log(chalk.blue(`  Generating for table: ${table}`));
+      await generateForTable(reader, stackOutputs, table, options);
+    }
+    
+    spinner.succeed('All tables generated successfully');
+  } catch (error) {
+    spinner.fail('Failed to generate SDK for all tables');
+    throw error;
+  }
+}

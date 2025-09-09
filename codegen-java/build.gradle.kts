@@ -1,0 +1,11 @@
+dependencies {
+  implementation(project(":schema-core"))
+  implementation(project(":cdk-integration"))
+  implementation("com.squareup:javapoet:1.13.0")
+  implementation("software.amazon.awssdk:dynamodb:2.21.29")
+  implementation("software.amazon.awssdk:dynamodb-enhanced:2.21.29")
+  implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+  
+  testImplementation("org.junit.jupiter:junit-jupiter")
+  testImplementation("org.assertj:assertj-core:3.26.3")
+}
