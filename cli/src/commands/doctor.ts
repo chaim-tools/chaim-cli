@@ -14,7 +14,7 @@ export async function doctorCommand(): Promise<void> {
   // Check Java (for code generation)
   await checkJava();
   
-git st  // Check AWS SDK (basic check)
+  // Check AWS SDK (basic check)
   try {
     require.resolve('@aws-sdk/client-sts');
     console.log(chalk.green('✓ AWS SDK available'));

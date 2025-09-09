@@ -18,8 +18,8 @@ fi
 echo "✅ Node.js version: $(node -v)"
 
 # Install dependencies
-echo "📦 Installing dependencies..."
-npm install
+echo "📦 Installing CLI dependencies..."
+cd cli && npm install
 
 # Build the TypeScript CLI
 echo "🔨 Building TypeScript CLI..."
@@ -27,6 +27,7 @@ npm run build
 
 # Build Java modules (for code generation)
 echo "☕ Building Java modules..."
+cd ../java
 if [ -f "gradlew" ]; then
     ./gradlew :schema-core:build
     ./gradlew :codegen-java:build
@@ -41,6 +42,6 @@ fi
 echo "✅ Setup complete!"
 echo ""
 echo "Usage:"
-echo "  ./dist/index.js generate --stack MyStack --package com.example"
-echo "  ./dist/index.js validate ./schemas/user.bprint"
-echo "  ./dist/index.js doctor"
+echo "  ./cli/dist/index.js generate --stack MyStack --package com.example"
+echo "  ./cli/dist/index.js validate ./shared/examples/user.bprint"
+echo "  ./cli/dist/index.js doctor"

@@ -21,6 +21,7 @@ program
   .option('--table <tableName>', 'Specific table name to generate (optional)')
   .option('--package <packageName>', 'Java package name (required)')
   .option('--output <outputDir>', 'Output directory', './src/main/java')
+  .option('--skip-checks', 'Skip environment and schema validation checks')
   .action(generateCommand);
 
 program

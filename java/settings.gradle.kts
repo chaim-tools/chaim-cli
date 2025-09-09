@@ -1,2 +1,2 @@
-rootProject.name = "chaim-cli"
+rootProject.name = "chaim-java"
 include("schema-core", "cdk-integration", "codegen-java")

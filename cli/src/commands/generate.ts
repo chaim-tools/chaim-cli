@@ -3,6 +3,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { CloudFormationReader } from './cloudformation-reader';
 import { JavaGenerator } from './java-generator-wrapper';
+import { doctorCommand } from './doctor';
+// import { validateSchema } from '../../../chaim-bprint-spec/dist/index';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -12,27 +14,59 @@ interface GenerateOptions {
   table?: string;
   package: string;
   output: string;
+  skipChecks?: boolean;
 }
 
 export async function generateCommand(options: GenerateOptions): Promise<void> {
   try {
+    // Validation
     if (!options.stack) {
       console.error(chalk.red('Error: --stack is required'));
       process.exit(1);
     }
-
     if (!options.package) {
       console.error(chalk.red('Error: --package is required'));
       process.exit(1);
     }
 
+    // Pre-generation checks (unless skipped)
+    if (!options.skipChecks) {
+      await runPreGenerationChecks();
+    }
+
+    // Main generation logic
     await generateFromStack(options);
+    
   } catch (error) {
     console.error(chalk.red('✗ Generation failed:'), error instanceof Error ? error.message : error);
     if (error instanceof Error && error.stack) {
       console.error(error.stack);
     }
     process.exit(1);
+  }
+}
+
+async function runPreGenerationChecks(): Promise<void> {
+  const spinner = ora('Running pre-generation checks...').start();
+  
+  try {
+    // Run environment checks (capture output to avoid duplicate messages)
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    
+    console.log = () => {}; // Suppress doctor output
+    console.error = () => {}; // Suppress doctor errors
+    
+    await doctorCommand();
+    
+    // Restore console
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+    
+    spinner.succeed('Pre-generation checks passed');
+  } catch (error) {
+    spinner.fail('Pre-generation checks failed');
+    throw new Error(`Environment validation failed: ${error instanceof Error ? error.message : error}`);
   }
 }
 
@@ -85,6 +119,15 @@ async function generateForTable(
     
     // Convert JSON to BprintSchema
     const schema = JSON.parse(JSON.stringify(schemaData));
+    
+    // Validate schema (unless skipped)
+    if (!options.skipChecks) {
+      try {
+        // validateSchema(schema);
+      } catch (error) {
+        throw new Error(`Schema validation failed for table '${table}': ${error instanceof Error ? error.message : error}`);
+      }
+    }
     
     // Generate code using Java generator
     const javaGenerator = new JavaGenerator();

@@ -8,7 +8,7 @@ export class JavaGenerator {
 
   constructor() {
     // Path to the Java generator JAR
-    this.javaGeneratorPath = path.join(__dirname, '../../codegen-java/build/libs/codegen-java-0.1.0.jar');
+    this.javaGeneratorPath = path.join(__dirname, '../../java/codegen-java/build/libs/codegen-java-0.1.0.jar');
   }
 
   async generate(schema: any, packageName: string, outputDir: string, tableMetadata?: any): Promise<void> {
@@ -26,7 +26,7 @@ export class JavaGenerator {
         '--package', packageName,
         '--output', outputDir
       ];
- 
+
       if (tableMetadata) {
         args.push('--table-metadata', JSON.stringify(tableMetadata));
       }

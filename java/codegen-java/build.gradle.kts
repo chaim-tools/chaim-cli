@@ -6,6 +6,11 @@ dependencies {
   implementation("software.amazon.awssdk:dynamodb-enhanced:2.21.29")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
   
-  testImplementation("org.junit.jupiter:junit-jupiter")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
   testImplementation("org.assertj:assertj-core:3.26.3")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+  useJUnitPlatform()
 }

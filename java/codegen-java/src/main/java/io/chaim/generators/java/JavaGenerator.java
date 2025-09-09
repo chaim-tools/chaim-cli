@@ -7,8 +7,6 @@ import io.chaim.cdk.TableMetadata;
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Enhanced Java generator that creates DTOs, ChaimConfig, and ChaimMapperClient
