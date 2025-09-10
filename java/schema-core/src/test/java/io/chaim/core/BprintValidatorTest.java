@@ -16,15 +16,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -38,15 +38,15 @@ public class BprintValidatorTest {
     s.schemaVersion = null;
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -62,15 +62,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -86,15 +86,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = null;
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -110,15 +110,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -134,15 +134,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = null;
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -158,15 +158,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -195,15 +195,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = null;
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -219,15 +219,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -243,13 +243,13 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     e.primaryKey = null;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -265,15 +265,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = null;
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -289,15 +289,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -313,7 +313,7 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
@@ -333,7 +333,7 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
@@ -353,15 +353,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = null; 
-    f.type = "string"; 
+    f.name = null;
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -377,15 +377,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = ""; 
-    f.type = "string"; 
+    f.name = "";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -401,15 +401,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = null; 
+    f.name = "orderId";
+    f.type = null;
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -425,15 +425,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = ""; 
+    f.name = "orderId";
+    f.type = "";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -449,15 +449,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "money"; 
+    f.name = "orderId";
+    f.type = "money";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -473,23 +473,23 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field f2 = new BprintSchema.Field();
     f2.name = "orderId"; // Same name as first field
     f2.type = "string";
     f2.required = false;
-    
+
     e.fields = List.of(f1, f2);
     s.entity = e;
 
@@ -504,33 +504,33 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field stringField = new BprintSchema.Field();
     stringField.name = "name";
     stringField.type = "string";
     stringField.required = false;
-    
+
     BprintSchema.Field numberField = new BprintSchema.Field();
     numberField.name = "amount";
     numberField.type = "number";
     numberField.required = false;
-    
+
     BprintSchema.Field boolField = new BprintSchema.Field();
     boolField.name = "isActive";
     boolField.type = "bool";
     boolField.required = false;
-    
+
     BprintSchema.Field timestampField = new BprintSchema.Field();
     timestampField.name = "createdAt";
     timestampField.type = "timestamp";
     timestampField.required = false;
-    
+
     e.fields = List.of(stringField, numberField, boolField, timestampField);
     s.entity = e;
 
@@ -543,24 +543,24 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field enumField = new BprintSchema.Field();
     enumField.name = "status";
     enumField.type = "string";
     enumField.required = false;
     enumField.enumValues = List.of("pending", "processing", "completed", "cancelled");
-    
+
     e.fields = List.of(f1, enumField);
     s.entity = e;
 
@@ -573,24 +573,24 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field enumField = new BprintSchema.Field();
     enumField.name = "status";
     enumField.type = "string";
     enumField.required = false;
     enumField.enumValues = new ArrayList<>();
-    
+
     e.fields = List.of(f1, enumField);
     s.entity = e;
 
@@ -605,24 +605,24 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field enumField = new BprintSchema.Field();
     enumField.name = "status";
     enumField.type = "string";
     enumField.required = false;
     enumField.enumValues = List.of("pending", "", "completed");
-    
+
     e.fields = List.of(f1, enumField);
     s.entity = e;
 
@@ -637,7 +637,7 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
@@ -645,8 +645,8 @@ public class BprintValidatorTest {
     pk.sortKey = "timestamp";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     s.entity = e;
@@ -660,28 +660,28 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field f2 = new BprintSchema.Field();
     f2.name = "customerId";
     f2.type = "string";
     f2.required = true;
-    
+
     BprintSchema.Field f3 = new BprintSchema.Field();
     f3.name = "amount";
     f3.type = "number";
     f3.required = true;
-    
+
     e.fields = List.of(f1, f2, f3);
     s.entity = e;
 
@@ -694,24 +694,24 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
-    
+
     BprintSchema.Annotations annotations = new BprintSchema.Annotations();
     annotations.pii = true;
     annotations.retention = "7years";
     annotations.encryption = "required";
     e.annotations = annotations;
-    
+
     s.entity = e;
 
     assertThatCode(() -> BprintValidator.validate(s)).doesNotThrowAnyException();
@@ -723,15 +723,15 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
     BprintSchema.Field f = new BprintSchema.Field();
-    f.name = "orderId"; 
-    f.type = "string"; 
+    f.name = "orderId";
+    f.type = "string";
     f.required = true;
     e.fields = List.of(f);
     e.annotations = null;
@@ -746,24 +746,24 @@ public class BprintValidatorTest {
     s.schemaVersion = "v1";
     s.namespace = "acme.orders";
     s.description = "Basic order management system";
-    
+
     BprintSchema.Entity e = new BprintSchema.Entity();
     e.name = "Order";
     BprintSchema.PrimaryKey pk = new BprintSchema.PrimaryKey();
     pk.partitionKey = "orderId";
     e.primaryKey = pk;
-    
+
     BprintSchema.Field f1 = new BprintSchema.Field();
-    f1.name = "orderId"; 
-    f1.type = "string"; 
+    f1.name = "orderId";
+    f1.type = "string";
     f1.required = true;
-    
+
     BprintSchema.Field fieldWithDefault = new BprintSchema.Field();
     fieldWithDefault.name = "isActive";
     fieldWithDefault.type = "bool";
     fieldWithDefault.required = false;
     fieldWithDefault.defaultValue = true;
-    
+
     e.fields = List.of(f1, fieldWithDefault);
     s.entity = e;
 

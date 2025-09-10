@@ -21,26 +21,18 @@ Building data-driven applications requires significant boilerplate code. **chaim
 
 ## Quick Start
 
-### Step 1: Build Dependencies
-```bash
-# Build all repositories in dependency order
-cd chaim-bprint-spec && npm run clean && npm run build
-cd ../chaim-cdk && npm run clean && npm run build  
-cd ../chaim-cli && npm run clean && npm run build
-```
-
-### Step 2: Deploy Your Infrastructure (in chaim-cdk repo)
+### Step 1: Deploy Your Infrastructure (in chaim-cdk repo) 
 ```bash
 cdk deploy MyStack
 ```
 
-### Step 3: Generate Your SDK
+### Step 2: Generate Your SDK
 ```bash
 # Generate SDK from your deployed CDK stack
 chaim generate --stack MyStack --package com.example
 ```
 
-### Step 4: Use the Generated SDK
+### Step 3: Use the Generated SDK
 ```java
 // Create mapper client
 ChaimMapperClient mapper = ChaimConfig.createMapper();
@@ -55,26 +47,6 @@ Optional<User> found = mapper.findById(User.class, "user-123");
 // Query users
 List<User> activeUsers = mapper.findByField(User.class, "isActive", true);
 ```
-
-## Development Setup
-
-### Building from Source
-```bash
-# Clean and build all repositories
-npm run clean && npm run build
-
-# Or build individual components
-npm run build:cli    # TypeScript CLI
-npm run build:java   # Java components
-```
-
-### Available Build Commands
-- `npm run build` - Build both CLI and Java components
-- `npm run build:cli` - Build TypeScript CLI only
-- `npm run build:java` - Build Java components only
-- `npm run clean` - Clean all build artifacts
-- `npm run clean:cli` - Clean CLI build artifacts
-- `npm run clean:java` - Clean Java build artifacts
 
 ## CLI Commands
 

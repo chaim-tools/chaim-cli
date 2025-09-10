@@ -25,7 +25,7 @@ public final class BprintValidator {
       if (!fieldNames.add(f.name)) fail(e.name + ": duplicate field " + f.name);
       if (isBlank(f.type)) fail(e.name + "." + f.name + ": type required");
       if (!FieldType.isValid(f.type)) fail(e.name + "." + f.name + ": unsupported type " + f.type);
-      
+
       // Validate enum values if present
       if (f.enumValues != null) {
         if (f.enumValues.isEmpty()) {

@@ -151,7 +151,7 @@ public class BprintLoaderTest {
         "description": "Customer account information and profile data",
         "entity": {
           "name": "Customer",
-          "primaryKey": { 
+          "primaryKey": {
             "partitionKey": "customerId",
             "sortKey": "email"
           },

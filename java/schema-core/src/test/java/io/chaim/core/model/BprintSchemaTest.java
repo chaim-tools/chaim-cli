@@ -21,23 +21,23 @@ public class BprintSchemaTest {
     entity = new BprintSchema.Entity();
     primaryKey = new BprintSchema.PrimaryKey();
     field = new BprintSchema.Field();
-    
+
     // Setup valid schema
     schema.schemaVersion = "v1";
     schema.namespace = "acme.orders";
     schema.description = "Basic order management system";
-    
+
     entity.name = "Order";
     entity.description = "Order entity";
-    
+
     primaryKey.partitionKey = "orderId";
     primaryKey.sortKey = "timestamp";
-    
+
     field.name = "orderId";
     field.type = "string";
     field.required = true;
     field.description = "Unique order identifier";
-    
+
     entity.primaryKey = primaryKey;
     entity.fields = List.of(field);
     schema.entity = entity;
@@ -84,7 +84,7 @@ public class BprintSchemaTest {
     schema.namespace = null;
     schema.description = null;
     schema.entity = null;
-    
+
     assertThat(schema.schemaVersion).isNull();
     assertThat(schema.namespace).isNull();
     assertThat(schema.description).isNull();
@@ -96,7 +96,7 @@ public class BprintSchemaTest {
     schema.schemaVersion = "";
     schema.namespace = "";
     schema.description = "";
-    
+
     assertThat(schema.schemaVersion).isEmpty();
     assertThat(schema.namespace).isEmpty();
     assertThat(schema.description).isEmpty();
@@ -107,7 +107,7 @@ public class BprintSchemaTest {
     schema.schemaVersion = "  v1  ";
     schema.namespace = "  acme.orders  ";
     schema.description = "  Basic order management system  ";
-    
+
     assertThat(schema.schemaVersion).isEqualTo("  v1  ");
     assertThat(schema.namespace).isEqualTo("  acme.orders  ");
     assertThat(schema.description).isEqualTo("  Basic order management system  ");
@@ -118,7 +118,7 @@ public class BprintSchemaTest {
     schema.schemaVersion = "v1.0-beta";
     schema.namespace = "acme.orders.v2";
     schema.description = "Order management system with special chars: @#$%^&*()";
-    
+
     assertThat(schema.schemaVersion).isEqualTo("v1.0-beta");
     assertThat(schema.namespace).isEqualTo("acme.orders.v2");
     assertThat(schema.description).isEqualTo("Order management system with special chars: @#$%^&*()");
@@ -127,7 +127,7 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleUnicodeCharacters() {
     schema.description = "Order management system with unicode: 🚀📦💳";
-    
+
     assertThat(schema.description).isEqualTo("Order management system with unicode: 🚀📦💳");
   }
 
@@ -135,7 +135,7 @@ public class BprintSchemaTest {
   void shouldHandleLongStrings() {
     String longDescription = "A".repeat(1000);
     schema.description = longDescription;
-    
+
     assertThat(schema.description).isEqualTo(longDescription);
     assertThat(schema.description).hasSize(1000);
   }
@@ -147,7 +147,7 @@ public class BprintSchemaTest {
     entity.primaryKey = null;
     entity.fields = null;
     entity.annotations = null;
-    
+
     assertThat(entity.name).isNull();
     assertThat(entity.description).isNull();
     assertThat(entity.primaryKey).isNull();
@@ -159,7 +159,7 @@ public class BprintSchemaTest {
   void shouldHandlePrimaryKeyWithNullValues() {
     primaryKey.partitionKey = null;
     primaryKey.sortKey = null;
-    
+
     assertThat(primaryKey.partitionKey).isNull();
     assertThat(primaryKey.sortKey).isNull();
   }
@@ -171,7 +171,7 @@ public class BprintSchemaTest {
     field.description = null;
     field.defaultValue = null;
     field.enumValues = null;
-    
+
     assertThat(field.name).isNull();
     assertThat(field.type).isNull();
     assertThat(field.description).isNull();
@@ -183,7 +183,7 @@ public class BprintSchemaTest {
   void shouldHandleFieldWithDefaultValues() {
     field.defaultValue = "default";
     field.enumValues = List.of("option1", "option2", "option3");
-    
+
     assertThat(field.defaultValue).isEqualTo("default");
     assertThat(field.enumValues).containsExactly("option1", "option2", "option3");
   }
@@ -192,7 +192,7 @@ public class BprintSchemaTest {
   void shouldHandleFieldWithBooleanDefaultValue() {
     field.type = "bool";
     field.defaultValue = true;
-    
+
     assertThat(field.type).isEqualTo("bool");
     assertThat(field.defaultValue).isEqualTo(true);
   }
@@ -201,7 +201,7 @@ public class BprintSchemaTest {
   void shouldHandleFieldWithNumberDefaultValue() {
     field.type = "number";
     field.defaultValue = 42.5;
-    
+
     assertThat(field.type).isEqualTo("number");
     assertThat(field.defaultValue).isEqualTo(42.5);
   }
@@ -210,7 +210,7 @@ public class BprintSchemaTest {
   void shouldHandleFieldWithIntegerDefaultValue() {
     field.type = "number";
     field.defaultValue = 100;
-    
+
     assertThat(field.type).isEqualTo("number");
     assertThat(field.defaultValue).isEqualTo(100);
   }
@@ -218,14 +218,14 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithEmptyEnumValues() {
     field.enumValues = new ArrayList<>();
-    
+
     assertThat(field.enumValues).isEmpty();
   }
 
   @Test
   void shouldHandleFieldWithSingleEnumValue() {
     field.enumValues = List.of("single");
-    
+
     assertThat(field.enumValues).containsExactly("single");
     assertThat(field.enumValues).hasSize(1);
   }
@@ -233,7 +233,7 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithMultipleEnumValues() {
     field.enumValues = List.of("option1", "option2", "option3", "option4", "option5");
-    
+
     assertThat(field.enumValues).containsExactly("option1", "option2", "option3", "option4", "option5");
     assertThat(field.enumValues).hasSize(5);
   }
@@ -241,7 +241,7 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithDuplicateEnumValues() {
     field.enumValues = List.of("option1", "option2", "option1", "option3");
-    
+
     assertThat(field.enumValues).containsExactly("option1", "option2", "option1", "option3");
     assertThat(field.enumValues).hasSize(4);
   }
@@ -249,14 +249,14 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithSpecialCharactersInEnum() {
     field.enumValues = List.of("option-1", "option_2", "option.3", "option@4");
-    
+
     assertThat(field.enumValues).containsExactly("option-1", "option_2", "option.3", "option@4");
   }
 
   @Test
   void shouldHandleFieldWithUnicodeInEnum() {
     field.enumValues = List.of("option🚀", "option📦", "option💳");
-    
+
     assertThat(field.enumValues).containsExactly("option🚀", "option📦", "option💳");
   }
 
@@ -266,9 +266,9 @@ public class BprintSchemaTest {
     annotations.pii = true;
     annotations.retention = "7years";
     annotations.encryption = "required";
-    
+
     entity.annotations = annotations;
-    
+
     assertThat(entity.annotations).isNotNull();
     assertThat(entity.annotations.pii).isTrue();
     assertThat(entity.annotations.retention).isEqualTo("7years");
@@ -278,7 +278,7 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleNullAnnotations() {
     entity.annotations = null;
-    
+
     assertThat(entity.annotations).isNull();
   }
 
@@ -288,9 +288,9 @@ public class BprintSchemaTest {
     annotations.pii = null;
     annotations.retention = null;
     annotations.encryption = null;
-    
+
     entity.annotations = annotations;
-    
+
     assertThat(entity.annotations.pii).isNull();
     assertThat(entity.annotations.retention).isNull();
     assertThat(entity.annotations.encryption).isNull();
@@ -300,9 +300,9 @@ public class BprintSchemaTest {
   void shouldHandleAnnotationsWithBooleanValues() {
     BprintSchema.Annotations annotations = new BprintSchema.Annotations();
     annotations.pii = false;
-    
+
     entity.annotations = annotations;
-    
+
     assertThat(entity.annotations.pii).isFalse();
   }
 
@@ -311,9 +311,9 @@ public class BprintSchemaTest {
     BprintSchema.Annotations annotations = new BprintSchema.Annotations();
     annotations.retention = "7-years_with.special@chars";
     annotations.encryption = "required: AES-256";
-    
+
     entity.annotations = annotations;
-    
+
     assertThat(entity.annotations.retention).isEqualTo("7-years_with.special@chars");
     assertThat(entity.annotations.encryption).isEqualTo("required: AES-256");
   }
@@ -324,14 +324,14 @@ public class BprintSchemaTest {
     field2.name = "customerId";
     field2.type = "string";
     field2.required = true;
-    
+
     BprintSchema.Field field3 = new BprintSchema.Field();
     field3.name = "amount";
     field3.type = "number";
     field3.required = false;
-    
+
     entity.fields = List.of(field, field2, field3);
-    
+
     assertThat(entity.fields).hasSize(3);
     assertThat(entity.fields.get(0).name).isEqualTo("orderId");
     assertThat(entity.fields.get(1).name).isEqualTo("customerId");
@@ -341,43 +341,43 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleEmptyFieldsList() {
     entity.fields = new ArrayList<>();
-    
+
     assertThat(entity.fields).isEmpty();
   }
 
   @Test
   void shouldHandleNullFieldsList() {
     entity.fields = null;
-    
+
     assertThat(entity.fields).isNull();
   }
 
   @Test
   void shouldHandleFieldWithAllTypes() {
     List<BprintSchema.Field> allTypeFields = new ArrayList<>();
-    
+
     BprintSchema.Field stringField = new BprintSchema.Field();
     stringField.name = "stringField";
     stringField.type = "string";
     allTypeFields.add(stringField);
-    
+
     BprintSchema.Field numberField = new BprintSchema.Field();
     numberField.name = "numberField";
     numberField.type = "number";
     allTypeFields.add(numberField);
-    
+
     BprintSchema.Field boolField = new BprintSchema.Field();
     boolField.name = "boolField";
     boolField.type = "bool";
     allTypeFields.add(boolField);
-    
+
     BprintSchema.Field timestampField = new BprintSchema.Field();
     timestampField.name = "timestampField";
     timestampField.type = "timestamp";
     allTypeFields.add(timestampField);
-    
+
     entity.fields = allTypeFields;
-    
+
     assertThat(entity.fields).hasSize(4);
     assertThat(entity.fields.get(0).type).isEqualTo("string");
     assertThat(entity.fields.get(1).type).isEqualTo("number");
@@ -388,14 +388,14 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithMixedRequiredValues() {
     field.required = true;
-    
+
     BprintSchema.Field optionalField = new BprintSchema.Field();
     optionalField.name = "optionalField";
     optionalField.type = "string";
     optionalField.required = false;
-    
+
     entity.fields = List.of(field, optionalField);
-    
+
     assertThat(entity.fields.get(0).required).isTrue();
     assertThat(entity.fields.get(1).required).isFalse();
   }
@@ -403,21 +403,21 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithLongNames() {
     field.name = "veryLongFieldNameThatExceedsNormalLength";
-    
+
     assertThat(field.name).isEqualTo("veryLongFieldNameThatExceedsNormalLength");
   }
 
   @Test
   void shouldHandleFieldWithSpecialCharactersInName() {
     field.name = "field-with_special.chars@123";
-    
+
     assertThat(field.name).isEqualTo("field-with_special.chars@123");
   }
 
   @Test
   void shouldHandleFieldWithUnicodeInName() {
     field.name = "field🚀📦💳";
-    
+
     assertThat(field.name).isEqualTo("field🚀📦💳");
   }
 
@@ -425,7 +425,7 @@ public class BprintSchemaTest {
   void shouldHandleFieldWithLongDescription() {
     String longDesc = "A".repeat(500);
     field.description = longDesc;
-    
+
     assertThat(field.description).isEqualTo(longDesc);
     assertThat(field.description).hasSize(500);
   }
@@ -433,14 +433,14 @@ public class BprintSchemaTest {
   @Test
   void shouldHandleFieldWithSpecialCharactersInDescription() {
     field.description = "Field description with special chars: @#$%^&*()_+-=[]{}|;':\",./<>?";
-    
+
     assertThat(field.description).isEqualTo("Field description with special chars: @#$%^&*()_+-=[]{}|;':\",./<>?");
   }
 
   @Test
   void shouldHandleFieldWithUnicodeInDescription() {
     field.description = "Field description with unicode: 🚀📦💳";
-    
+
     assertThat(field.description).isEqualTo("Field description with unicode: 🚀📦💳");
   }
 
@@ -450,45 +450,45 @@ public class BprintSchemaTest {
     BprintSchema.Entity nestedEntity = new BprintSchema.Entity();
     nestedEntity.name = "ComplexEntity";
     nestedEntity.description = "A complex entity with many fields";
-    
+
     BprintSchema.PrimaryKey nestedPk = new BprintSchema.PrimaryKey();
     nestedPk.partitionKey = "id";
     nestedPk.sortKey = "timestamp";
-    
+
     List<BprintSchema.Field> nestedFields = new ArrayList<>();
-    
+
     for (int i = 0; i < 10; i++) {
       BprintSchema.Field f = new BprintSchema.Field();
       f.name = "field" + i;
       f.type = i % 4 == 0 ? "string" : i % 4 == 1 ? "number" : i % 4 == 2 ? "bool" : "timestamp";
       f.required = i % 2 == 0;
       f.description = "Field " + i + " description";
-      
+
       if (f.type.equals("string") && i % 3 == 0) {
         f.enumValues = List.of("option" + i + "a", "option" + i + "b", "option" + i + "c");
       }
-      
+
       if (f.type.equals("bool") && i % 2 == 0) {
         f.defaultValue = i % 4 == 0;
       }
-      
+
       if (f.type.equals("number") && i % 2 == 0) {
         f.defaultValue = (double) i;
       }
-      
+
       nestedFields.add(f);
     }
-    
+
     nestedEntity.primaryKey = nestedPk;
     nestedEntity.fields = nestedFields;
-    
+
     BprintSchema.Annotations nestedAnnotations = new BprintSchema.Annotations();
     nestedAnnotations.pii = true;
     nestedAnnotations.retention = "10years";
     nestedAnnotations.encryption = "AES-256";
-    
+
     nestedEntity.annotations = nestedAnnotations;
-    
+
     // Verify the complex structure
     assertThat(nestedEntity.name).isEqualTo("ComplexEntity");
     assertThat(nestedEntity.description).isEqualTo("A complex entity with many fields");
@@ -498,7 +498,7 @@ public class BprintSchemaTest {
     assertThat(nestedEntity.annotations.pii).isTrue();
     assertThat(nestedEntity.annotations.retention).isEqualTo("10years");
     assertThat(nestedEntity.annotations.encryption).isEqualTo("AES-256");
-    
+
     // Verify field types
     assertThat(nestedEntity.fields.get(0).type).isEqualTo("string");
     assertThat(nestedEntity.fields.get(1).type).isEqualTo("number");
