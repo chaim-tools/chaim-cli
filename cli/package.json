@@ -17,19 +17,8 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "chaim",
-    "cli",
-    "code-generation",
-    "dynamodb",
-    "schema"
-  ],
-  "author": "Chaim Builder",
-  "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-sts": "^3.883.0",
-    "@chaim/cdk": "file:../../chaim-cdk",
-    "@chaim/chaim-bprint-spec": "file:../../chaim-bprint-spec",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "ora": "^5.4.1"
@@ -45,13 +34,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/chaim-builder/chaim-cli.git"
-  },
-  "bugs": {
-    "url": "https://github.com/chaim-builder/chaim-cli/issues"
-  },
-  "homepage": "https://github.com/chaim-builder/chaim-cli#readme"
+  }
 }

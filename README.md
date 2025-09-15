@@ -19,6 +19,23 @@ Building data-driven applications requires significant boilerplate code. **chaim
 4. **Schema Definition** (`.bprint` files) - [chaim-bprint-spec](https://github.com/chaim-builder/chaim-bprint-spec)
 5. **AWS CDK Infrastructure** - [chaim-cdk](https://github.com/chaim-builder/chaim-cdk)
 
+### Quick Prerequisites Setup
+
+Use the `init` command to verify and install all prerequisites:
+
+```bash
+# Check and install all required dependencies
+chaim init
+
+# This will:
+# ✓ Verify Node.js version (v18+)
+# ✓ Check Java installation (11+)
+# ✓ Validate AWS CLI and credentials
+# ✓ Install CDK CLI if missing
+# ✓ Bootstrap CDK in your region
+# ✓ Install chaim-cli dependencies
+```
+
 ## Quick Start
 
 ### Step 1: Deploy Your Infrastructure (in chaim-cdk repo) 
@@ -51,14 +68,68 @@ List<User> activeUsers = mapper.findByField(User.class, "isActive", true);
 ## CLI Commands
 
 ```bash
-# Generate SDK from CDK stack (recommended)
+# Verify and install all prerequisites
+chaim init
+
+# Generate SDK from CDK stack
 chaim generate --stack MyStack --package com.example
 
 # Validate schemas
 chaim validate ./schemas/user.bprint
 
-# Check environment
+# Check environment and dependencies
 chaim doctor
+```
+
+### Init Command Options
+
+```bash
+# Basic prerequisite verification and installation
+chaim init
+
+# Install missing dependencies automatically
+chaim init --install
+
+# Verify prerequisites only (no installation)
+chaim init --verify-only
+
+# Bootstrap CDK in specific region
+chaim init --region us-west-2
+```
+
+### What `chaim init` Does
+
+The init command focuses specifically on **prerequisite verification and dependency installation**:
+
+**Prerequisites Checked:**
+- ✅ **Node.js** version (requires v18+)
+- ✅ **Java** installation (requires 11+)
+- ✅ **AWS CLI** availability and configuration
+- ✅ **CDK CLI** installation
+- ✅ **AWS credentials** validity
+- ✅ **CDK bootstrap** status in your region
+
+**Dependencies Installed:**
+- 📦 **CDK CLI** (if missing): `npm install -g aws-cdk`
+- 📦 **chaim-cli dependencies** (if missing)
+- 📦 **CDK bootstrap** (if not already done)
+
+**Output Example:**
+```bash
+$ chaim init
+
+🔍 Checking prerequisites...
+✓ Node.js v18.17.0 (required: v18+)
+✓ Java 11.0.19 (required: 11+)
+✓ AWS CLI 2.13.0
+✓ AWS credentials configured (Account: 123456789012)
+✓ CDK CLI 2.100.0
+✓ CDK bootstrapped in us-east-1
+
+📦 Installing dependencies...
+✓ All dependencies up to date
+
+🎉 Prerequisites setup complete!
 ```
 
 ## Optional Configuration

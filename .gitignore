@@ -9,6 +9,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Bundled dependencies (generated during build)
+bundled-deps/
+
 # CLI TypeScript build outputs
 cli/dist/
 cli/build/

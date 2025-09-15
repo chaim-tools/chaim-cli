@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { generateCommand } from './commands/generate';
 import { validateCommand } from './commands/validate';
 import { doctorCommand } from './commands/doctor';
+import { initCommand } from './commands/init';
 import chalk from 'chalk';
 
 const program = new Command();
@@ -35,12 +36,21 @@ program
   .description('Check system environment and dependencies')
   .action(doctorCommand);
 
+program
+  .command('init')
+  .description('Verify and install all prerequisites')
+  .option('--install', 'Install missing dependencies automatically')
+  .option('--verify-only', 'Verify prerequisites only (no installation)')
+  .option('--region <region>', 'AWS region for CDK bootstrap', 'us-east-1')
+  .action(initCommand);
+
 // Show help if no command provided
 if (process.argv.length <= 2) {
   console.log(chalk.blue('Chaim CLI v0.1.0'));
   console.log('Usage: chaim <command> [options]');
   console.log('');
   console.log('Commands:');
+  console.log('  init      - Verify and install all prerequisites');
   console.log('  generate  - Generate Java SDK from schema or CDK stack');
   console.log('  validate  - Validate a .bprint schema file');
   console.log('  doctor    - Check system environment and dependencies');

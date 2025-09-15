@@ -1,22 +1,35 @@
 {
-  "name": "chaim-cli",
+  "name": "@chaim/cli",
   "version": "0.1.0",
-  "description": "Schema-driven code generation tool for DynamoDB - CLI with TypeScript and Java components",
-  "private": true,
+  "description": "Schema-driven code generation tool for DynamoDB - Pure TypeScript CLI",
   "workspaces": [
     "cli"
   ],
+  "main": "cli/dist/index.js",
+  "types": "cli/dist/index.d.ts",
+  "files": [
+    "cli/dist",
+    "bundled-deps",
+    "shared/examples",
+    "shared/scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": { "node": ">=18" },
+  "bin": {"chaim": "./cli/dist/index.js"},
   "scripts": {
-    "build": "npm run build:cli && npm run build:java",
+    "build": "npm run build:deps && npm run build:cli",
     "build:cli": "cd cli && npm run build",
-    "build:java": "cd java && ./gradlew build",
+    "build:deps": "npm run bundle:client-java && npm run bundle:bprint-spec && npm run bundle:cdk",
+    "bundle:client-java": "mkdir -p bundled-deps && cp -r ../chaim-client-java/dist bundled-deps/client-java && cp -r ../chaim-client-java/build bundled-deps/client-java-build",
+    "bundle:bprint-spec": "mkdir -p bundled-deps && cp -r ../chaim-bprint-spec/dist bundled-deps/bprint-spec && cp -r ../chaim-bprint-spec/schema bundled-deps/bprint-spec-schema",
+    "bundle:cdk": "mkdir -p bundled-deps && cp -r ../chaim-cdk/lib bundled-deps/cdk",
     "setup": "./shared/scripts/setup.sh",
-    "clean": "npm run clean:cli && npm run clean:java",
+    "clean": "npm run clean:cli && npm run clean:deps",
     "clean:cli": "cd cli && npm run clean",
-    "clean:java": "cd java && ./gradlew clean",
-    "test": "npm run test:cli && npm run test:java",
-    "test:cli": "cd cli && npm test",
-    "test:java": "cd java && ./gradlew test"
+    "clean:deps": "rm -rf bundled-deps",
+    "test": "npm run test:cli",
+    "test:cli": "cd cli && npm test"
   },
   "keywords": [
     "chaim",
@@ -24,8 +37,7 @@
     "code-generation",
     "dynamodb",
     "schema",
-    "typescript",
-    "java"
+    "typescript"
   ],
   "author": "Chaim Builder",
   "license": "Apache-2.0",
@@ -36,5 +48,11 @@
   "bugs": {
     "url": "https://github.com/chaim-builder/chaim-cli/issues"
   },
-  "homepage": "https://github.com/chaim-builder/chaim-cli#readme"
+  "homepage": "https://github.com/chaim-builder/chaim-cli#readme",
+  "dependencies": {
+    "@aws-sdk/client-sts": "^3.883.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "ora": "^5.4.1"
+  }
 }

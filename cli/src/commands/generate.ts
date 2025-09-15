@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { CloudFormationReader } from './cloudformation-reader';
-import { JavaGenerator } from './java-generator-wrapper';
+import { JavaGenerator } from '@chaim/client-java';
 import { doctorCommand } from './doctor';
 // import { validateSchema } from '../../../chaim-bprint-spec/dist/index';
 import * as fs from 'fs';
