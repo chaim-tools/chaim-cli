@@ -44,12 +44,13 @@ program
 
 program
   .command('generate')
-  .description('Generate Java SDK from schema or CDK stack')
-  .option('--stack <stackName>', 'CloudFormation stack name (recommended)')
-  .option('--region <region>', 'AWS region', 'us-east-1')
+  .description('Generate Java SDK from CDK snapshot (requires cdk synth or deploy)')
+  .option('--stack <stackName>', 'Filter snapshots by stack name')
   .option('--table <tableName>', 'Specific table name to generate (optional)')
   .option('--package <packageName>', 'Java package name (required)')
   .option('--output <outputDir>', 'Output directory', './src/main/java')
+  .option('--snapshot-dir <path>', 'Snapshot directory path', 'cdk.out/chaim/snapshots')
+  .option('--mode <mode>', 'Snapshot mode: preview, registered, or auto', 'auto')
   .option('--skip-checks', 'Skip environment and schema validation checks')
   .action(generateCommand);
 
@@ -99,9 +100,11 @@ if (process.argv.length <= 2) {
   console.log(chalk.blue('Chaim CLI v0.1.0'));
   console.log('Usage: chaim <command> [options]');
   console.log('');
+  console.log(chalk.yellow('Prerequisite: Run "cdk synth" or "cdk deploy" in your CDK project first'));
+  console.log('');
   console.log('Commands:');
   console.log('  init      - Verify and install all prerequisites');
-  console.log('  generate  - Generate Java SDK from schema or CDK stack');
+  console.log('  generate  - Generate Java SDK from CDK snapshot');
   console.log('  validate  - Validate a .bprint schema file');
   console.log('  doctor    - Check system environment and dependencies');
   console.log('');

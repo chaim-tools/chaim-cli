@@ -1,6 +1,20 @@
+/**
+ * @deprecated This file is deprecated and no longer used.
+ * 
+ * The CLI now requires snapshots from chaim-cdk as a prerequisite.
+ * Users must run `cdk synth` or `cdk deploy` before using `chaim generate`.
+ * 
+ * See: src/services/snapshot-discovery.ts for the current implementation.
+ * 
+ * This file is retained for reference but may be removed in a future version.
+ */
+
 import { spawn } from 'child_process';
 // import chalk from 'chalk';
 
+/**
+ * @deprecated Use snapshot-discovery.ts instead
+ */
 export interface ChaimStackOutputs {
   getMode(): string;
   getRegion(): string;
@@ -9,6 +23,15 @@ export interface ChaimStackOutputs {
   getOutput(key: string): string | undefined;
 }
 
+/**
+ * @deprecated This class is no longer used. The CLI requires snapshots from chaim-cdk.
+ * 
+ * To generate an SDK:
+ * 1. Run `cdk synth` or `cdk deploy` in your CDK project
+ * 2. Run `chaim generate --package <package>`
+ * 
+ * The CLI reads snapshots from cdk.out/chaim/snapshots/ automatically.
+ */
 export class CloudFormationReader {
   async readStackOutputs(stackName: string, region: string): Promise<ChaimStackOutputs> {
     return new Promise((resolve, reject) => {
