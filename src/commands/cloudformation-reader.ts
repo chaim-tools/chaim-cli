@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import chalk from 'chalk';
+// import chalk from 'chalk';
 
 export interface ChaimStackOutputs {
   getMode(): string;

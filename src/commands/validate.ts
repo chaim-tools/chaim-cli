@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { validateSchema } from '@chaim/chaim-bprint-spec';
+import { validateSchema } from '@chaim-tools/chaim-bprint-spec';
 import * as fs from 'fs';
 import * as path from 'path';
 

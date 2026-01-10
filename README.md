@@ -16,8 +16,8 @@ Building data-driven applications requires significant boilerplate code. **chaim
 1. **Node.js** (v18 or higher)
 2. **AWS Credentials** configured: `aws configure`
 3. **Java** (for code generation)
-4. **Schema Definition** (`.bprint` files) - [chaim-bprint-spec](https://github.com/chaim-builder/chaim-bprint-spec)
-5. **AWS CDK Infrastructure** - [chaim-cdk](https://github.com/chaim-builder/chaim-cdk)
+4. **Schema Definition** (`.bprint` files) - [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec)
+5. **AWS CDK Infrastructure** - [chaim-cdk](https://github.com/chaim-tools/chaim-cdk)
 
 ### Quick Prerequisites Setup
 
@@ -159,18 +159,18 @@ chaim generate
 - `bool` → `Boolean`
 - `timestamp` → `Instant`
 
-*For the complete list, see [chaim-bprint-spec](https://github.com/chaim-builder/chaim-bprint-spec).*
+*For the complete list, see [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec).*
 
 ## Related Projects
 
-- [chaim-bprint-spec](https://github.com/chaim-builder/chaim-bprint-spec) - Schema specification and validation
-- [chaim-cdk](https://github.com/chaim-builder/chaim-cdk) - AWS CDK constructs for infrastructure
+- [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec) - Schema specification and validation
+- [chaim-cdk](https://github.com/chaim-tools/chaim-cdk) - AWS CDK constructs for infrastructure
 
 ## Getting Help
 
-- **Documentation**: [chaim-bprint-spec](https://github.com/chaim-builder/chaim-bprint-spec)
-- **Issues**: [GitHub Issues](https://github.com/chaim-builder/chaim-cli/issues)
-- **Examples**: [chaim-examples](https://github.com/chaim-builder/chaim-examples)
+- **Documentation**: [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec)
+- **Issues**: [GitHub Issues](https://github.com/chaim-tools/chaim-cli/issues)
+- **Examples**: [chaim-examples](https://github.com/chaim-tools/chaim-examples)
 - **Community**: [Discord](https://discord.gg/chaim)
 
 ---

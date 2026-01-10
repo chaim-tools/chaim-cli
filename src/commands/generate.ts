@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { CloudFormationReader } from './cloudformation-reader';
-import { JavaGenerator } from '@chaim/client-java';
+import { JavaGenerator } from '@chaim-tools/client-java';
 import { doctorCommand } from './doctor';
 // import { validateSchema } from '../../../chaim-bprint-spec/dist/index';
 import * as fs from 'fs';
@@ -130,8 +130,10 @@ async function generateForTable(
     }
     
     // Generate code using Java generator
+    // Generate Java SDK using the published client-java package
     const javaGenerator = new JavaGenerator();
     await javaGenerator.generate(schema, options.package, options.output, tableMetadata);
+    
     
     spinner.succeed('SDK generated successfully');
     console.log(chalk.green('  Output directory:'), path.resolve(options.output));

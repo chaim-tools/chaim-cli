@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+
+import { Command } from 'commander';
+import { generateCommand } from './commands/generate';
+import { validateCommand } from './commands/validate';
+import { doctorCommand } from './commands/doctor';
+import { initCommand } from './commands/init';
+import chalk from 'chalk';
+
+/**
+ * ==========================
+ * Planned Commands (Roadmap)
+ * ==========================
+ * These are intentionally commented out until implemented.
+ * See docs/CLI_ROADMAP.md and src/planned-commands.ts.
+ *
+ * To enable a command:
+ * 1. Uncomment the import statement
+ * 2. Uncomment the registration call below
+ * 3. Implement the command logic in the stub file
+ * 4. Update status in planned-commands.ts and CLI_ROADMAP.md
+ */
+
+// ─── TIER 0: Must Have ───────────────────────────────────────────────────────
+// import { registerAuthLoginCommand } from './commands/auth/login';
+// import { registerAuthWhoamiCommand } from './commands/auth/whoami';
+// import { registerAuthLogoutCommand } from './commands/auth/logout';
+
+// ─── TIER 1: Core Productivity ───────────────────────────────────────────────
+// import { registerConfigureCommand } from './commands/configure';
+// import { registerAppsLinkCommand } from './commands/apps/link';
+
+// ─── TIER 3: Nice to Have ────────────────────────────────────────────────────
+// import { registerAuthRefreshCommand } from './commands/auth/refresh';
+// import { registerAppsListCommand } from './commands/apps/list';
+// import { registerConfigShowCommand } from './commands/config/show';
+
+const program = new Command();
+
+program
+  .name('chaim')
+  .description('Schema-driven code generation tool for DynamoDB')
+  .version('0.1.0');
+
+program
+  .command('generate')
+  .description('Generate Java SDK from schema or CDK stack')
+  .option('--stack <stackName>', 'CloudFormation stack name (recommended)')
+  .option('--region <region>', 'AWS region', 'us-east-1')
+  .option('--table <tableName>', 'Specific table name to generate (optional)')
+  .option('--package <packageName>', 'Java package name (required)')
+  .option('--output <outputDir>', 'Output directory', './src/main/java')
+  .option('--skip-checks', 'Skip environment and schema validation checks')
+  .action(generateCommand);
+
+program
+  .command('validate')
+  .description('Validate a .bprint schema file')
+  .argument('<schemaFile>', 'Schema file to validate')
+  .action(validateCommand);
+
+program
+  .command('doctor')
+  .description('Check system environment and dependencies')
+  .action(doctorCommand);
+
+program
+  .command('init')
+  .description('Verify and install all prerequisites')
+  .option('--install', 'Install missing dependencies automatically')
+  .option('--verify-only', 'Verify prerequisites only (no installation)')
+  .option('--region <region>', 'AWS region for CDK bootstrap', 'us-east-1')
+  .action(initCommand);
+
+/**
+ * ==========================
+ * Planned Command Registration
+ * ==========================
+ * Uncomment the corresponding import above and the registration call below
+ * when implementing each command.
+ */
+
+// ─── TIER 0: Must Have ───────────────────────────────────────────────────────
+// registerAuthLoginCommand(program);
+// registerAuthWhoamiCommand(program);
+// registerAuthLogoutCommand(program);
+
+// ─── TIER 1: Core Productivity ───────────────────────────────────────────────
+// registerConfigureCommand(program);
+// registerAppsLinkCommand(program);
+
+// ─── TIER 3: Nice to Have ────────────────────────────────────────────────────
+// registerAuthRefreshCommand(program);
+// registerAppsListCommand(program);
+// registerConfigShowCommand(program);
+
+// Show help if no command provided
+if (process.argv.length <= 2) {
+  console.log(chalk.blue('Chaim CLI v0.1.0'));
+  console.log('Usage: chaim <command> [options]');
+  console.log('');
+  console.log('Commands:');
+  console.log('  init      - Verify and install all prerequisites');
+  console.log('  generate  - Generate Java SDK from schema or CDK stack');
+  console.log('  validate  - Validate a .bprint schema file');
+  console.log('  doctor    - Check system environment and dependencies');
+  console.log('');
+  console.log('Use \'chaim <command> --help\' for more information');
+  process.exit(0);
+}
+
+program.parse();
