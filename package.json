@@ -6,7 +6,6 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "bundled-deps",
     "shared/examples",
     "shared/scripts",
     "README.md",
@@ -19,15 +18,10 @@
     "chaim": "./dist/index.js"
   },
   "scripts": {
-    "build": "npm run build:deps && npm run build:cli",
+    "build": "npm run build:cli",
     "build:cli": "tsc",
-    "build:deps": "npm run bundle:bprint-spec && npm run bundle:cdk",
-    "bundle:bprint-spec": "mkdir -p bundled-deps && cp -r ../chaim-bprint-spec/dist bundled-deps/bprint-spec && cp -r ../chaim-bprint-spec/schema bundled-deps/bprint-spec-schema",
-    "bundle:cdk": "mkdir -p bundled-deps && cp -r ../chaim-cdk/lib bundled-deps/cdk",
     "setup": "./shared/scripts/setup.sh",
-    "clean": "npm run clean:cli && npm run clean:deps",
-    "clean:cli": "rm -rf dist",
-    "clean:deps": "rm -rf bundled-deps",
+    "clean": "rm -rf dist",
     "test": "vitest",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
