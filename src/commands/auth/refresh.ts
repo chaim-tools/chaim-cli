@@ -46,3 +46,4 @@ export function registerAuthRefreshCommand(program: Command): Command {
   return program;
 }
 
+

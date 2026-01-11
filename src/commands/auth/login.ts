@@ -50,3 +50,4 @@ export function registerAuthLoginCommand(program: Command): Command {
   return program;
 }
 
+

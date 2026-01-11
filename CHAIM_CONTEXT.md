@@ -10,35 +10,40 @@
 
 ## Project Overview
 
-The chaim-cli is a **schema-driven code generation tool** that transforms `.bprint` schema definitions into complete, language-specific SDKs with data access clients, DTOs, and configuration management. It reads snapshot files produced by `chaim-cdk` to extract schema and resource configuration, then generates type-safe code.
+chaim-cli is a **schema-driven code generator** that reads `.bprint` snapshots from the OS cache and produces type-safe SDKs with DTOs and data access clients.
 
-**Current Implementation**: AWS (DynamoDB tables) with Java SDK generation.
+**Current System Support** 
+
+| Provider      | Resource            | Supported Languages     |
+|---------------|---------------------|------------------------|
+| AWS           | DynamoDB tables     | Java                   |
 
 ### Prerequisite
 
-> **IMPORTANT**: The CLI requires snapshots from `chaim-cdk`. You must run `cdk synth` or `cdk deploy` before using `chaim generate`.
+> **IMPORTANT**: The CLI requires LOCAL snapshots from `chaim-cdk`. You must run `cdk synth` or `cdk deploy` before using `chaim generate`.
 
 ```bash
-# In your CDK project (creates snapshots in cdk.out/chaim/snapshots/)
-cdk synth   # For development (preview mode)
-cdk deploy  # For production (registered mode)
+# In your CDK project (creates LOCAL snapshots in OS cache)
+cdk synth   # Creates LOCAL snapshot for code generation
+cdk deploy  # Also creates LOCAL snapshot + publishes to Chaim SaaS
 
-# Then run the CLI
-chaim generate --package com.example.model
+# Then run the CLI (from your Java application directory)
+chaim generate --package com.mycompany.myapp.model
 ```
 
 ### Key Capabilities
 
 - **Prerequisites Management**: Verify and install all required dependencies for the current provider
-- **Language-Specific SDK Generation**: Generate complete SDKs from CDK snapshots (Java-first implementation)
+- **Language-Specific SDK Generation**: Generate complete SDKs from LOCAL snapshots (Java-first implementation)
 - **Schema Validation**: Validate `.bprint` files using `@chaim-tools/chaim-bprint-spec`
 - **Environment Diagnostics**: Check system environment and dependency health
-- **Snapshot Discovery**: Automatically find and select the appropriate snapshot from `cdk.out/chaim/snapshots/`
-- **Extensible Code Generation**: Structured to support additional language generators (e.g., Kotlin, Python) without changing schema or ingestion behavior
+- **Snapshot Discovery**: Automatically find and select the appropriate snapshot from OS cache
+- **Works From Any Directory**: No need to be in the CDK project directory
+- **Extensible Code Generation**: Structured to support additional language generators (e.g., Kotlin, Python)
 
 ### Scope
 
-This CLI currently targets **AWS-based deployments only**, consuming snapshots produced by `chaim-cdk`.
+This CLI currently targets **AWS-based deployments only**, consuming LOCAL snapshots produced by `chaim-cdk`.
 
 ---
 
@@ -46,14 +51,26 @@ This CLI currently targets **AWS-based deployments only**, consuming snapshots p
 
 | Package | Relationship | Purpose |
 |---------|-------------|---------|
-| `@chaim-tools/cdk-lib` | **Upstream dependency** | Produces snapshot files that CLI consumes |
-| `@chaim-tools/chaim-bprint-spec` | **Shared dependency** | Schema format definition, validation |
+| `@chaim-tools/cdk-lib` | **Upstream** | Produces LOCAL snapshot files that CLI consumes |
+| `@chaim-tools/chaim-bprint-spec` | **Shared** | Schema format definition, validation |
 | `@chaim-tools/client-java` | **Code generator** | Java SDK generation |
 
+> **Contract**: The CLI depends on the `LocalSnapshotPayload` structure written by `chaim-cdk`. Changes to the snapshot format in `chaim-cdk` must be reflected in the CLI's type definitions (`src/types/snapshot-payload.ts`).
+
 **Data flow**:
+```mermaid
+flowchart LR
+    A[chaim-cdk<br/>cdk synth/deploy] --> B[OS cache<br/>~/.chaim/cache/snapshots/]
+    B --> C[chaim-cli<br/>chaim generate]
+    C --> D[Generated SDK<br/>src/main/java/...]
+    
+    style A fill:#4a90d9,stroke:#2e5a87,color:#fff
+    style C fill:#4a90d9,stroke:#2e5a87,color:#fff
+    style B fill:#2ecc71,stroke:#27ae60,color:#fff
+    style D fill:#2ecc71,stroke:#27ae60,color:#fff
 ```
-chaim-cdk (cdk synth/deploy) → cdk.out/chaim/snapshots/ → chaim-cli → Generated SDK
-```
+
+> 🔵 **Blue** = Commands you run &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 **Green** = Automatically created
 
 ---
 
@@ -83,78 +100,22 @@ chaim-cli/
 │   │   ├── init.ts                      # Prerequisites verification and installation
 │   │   ├── generate.ts                  # SDK generation from snapshots
 │   │   ├── validate.ts                  # Schema file validation
-│   │   ├── doctor.ts                    # Environment health checks
-│   │   └── cloudformation-reader.ts     # DEPRECATED: Legacy CloudFormation reader
-│   └── services/
-│       └── snapshot-discovery.ts        # Snapshot file discovery and resolution
+│   │   └── doctor.ts                    # Environment health checks
+│   ├── services/
+│   │   ├── snapshot-discovery.ts        # Snapshot file discovery and resolution
+│   │   └── os-cache-paths.ts            # OS cache directory utilities
+│   └── types/
+│       ├── index.ts                     # Type exports
+│       └── snapshot-payload.ts          # Snapshot and metadata type definitions
 ├── shared/
 │   ├── examples/
 │   │   └── orders.bprint                # Sample schema file
 │   └── scripts/
 │       └── setup.sh                     # Setup script for development
 ├── dist/                                # Compiled output (generated)
-├── bundled-deps/                        # Bundled dependencies for offline/reproducible generation (generated)
 ├── package.json
 ├── tsconfig.json
 └── README.md
-```
-
----
-
-## Architecture
-
-### CLI Command Structure
-
-```
-chaim (CLI entry point)
-├── init        # Prerequisites verification and installation
-├── generate    # SDK generation from infrastructure stack
-├── validate    # Schema file validation
-└── doctor      # Environment health checks
-```
-
-### Component Dependencies
-
-```mermaid
-flowchart TD
-    subgraph CLI [chaim-cli]
-        Index[index.ts]
-        Init[init command]
-        Generate[generate command]
-        Validate[validate command]
-        Doctor[doctor command]
-        SnapDisc[snapshot-discovery.ts]
-    end
-    
-    subgraph Core [Core Dependencies]
-        BprintSpec[chaim-bprint-spec]
-        CodeGen[Code Generator]
-    end
-    
-    subgraph Upstream [Upstream - chaim-cdk]
-        CDKOut[cdk.out/chaim/snapshots/]
-    end
-    
-    subgraph AWSImpl [AWS Implementation]
-        ClientJava[chaim-client-java]
-        AWSCLI[AWS CLI]
-        CDK[CDK CLI]
-    end
-    
-    Index --> Init
-    Index --> Generate
-    Index --> Validate
-    Index --> Doctor
-    
-    Generate --> SnapDisc
-    SnapDisc --> CDKOut
-    Generate --> BprintSpec
-    Generate --> CodeGen
-    CodeGen --> ClientJava
-    Validate --> BprintSpec
-    Init --> AWSCLI
-    Init --> CDK
-    Doctor --> AWSCLI
 ```
 
 ---
@@ -175,24 +136,11 @@ chaim init [options]
 | `--verify-only` | Verify prerequisites only (no installation) | false |
 | `--region <region>` | AWS region for CDK bootstrap | us-east-1 |
 
-**Prerequisites Checked:**
-- Node.js version (requires v18+)
-- Java installation (requires 11+)
-- AWS CLI availability and configuration
-- CDK CLI installation
-- AWS credentials validity
-- CDK bootstrap status
-
-**Dependencies Installed (with `--install`):**
-- CDK CLI (if missing): `npm install -g aws-cdk`
-- chaim-cli dependencies
-- CDK bootstrap (if not already done)
-
 ---
 
 ### `chaim generate`
 
-Generates language-specific SDK from Chaim snapshot files produced by `chaim-cdk`.
+Generates language-specific SDK from LOCAL snapshot files produced by `chaim-cdk`.
 
 **Prerequisite**: Run `cdk synth` or `cdk deploy` in your CDK project first.
 
@@ -202,40 +150,57 @@ chaim generate --package <packageName> [options]
 
 | Option | Type | Required | Description | Default |
 |--------|------|----------|-------------|---------|
-| `--package` | string | Yes | Target package name (e.g., `com.example.model` for Java) | - |
-| `--snapshot-dir` | string | No | Snapshot directory path | cdk.out/chaim/snapshots |
-| `--mode` | string | No | Snapshot mode: `preview`, `registered`, or `auto` | auto |
-| `--stack` | string | No | Filter snapshots by stack name | - |
-| `--table` | string | No | Specific table name to generate | All tables |
+| `--package` | string | **Yes** | Java package name (e.g., `com.mycompany.myapp.model`) | - |
 | `--output` | string | No | Output directory | ./src/main/java |
+| `--stack` | string | No | Filter by CDK stack name | - |
+| `--snapshot-dir` | string | No | Override snapshot directory (default: OS cache) | - |
 | `--skip-checks` | boolean | No | Skip environment validation | false |
 
-**Mode Selection:**
-- `auto` (default): Use registered if available, else preview
-- `preview`: Only use preview snapshots (cdk synth output)
-- `registered`: Only use registered snapshots (cdk deploy output)
+**Snapshot Selection:**
+- The CLI reads LOCAL snapshots from the OS cache
+- Snapshots are sorted by `capturedAt` (from payload), newest first
+- The newest snapshot is automatically selected
+- Use `--stack` to filter to a specific stack if needed
+
+**Multi-Entity Generation:**
+
+The CLI discovers and generates from **all matching snapshots**. One entity class is generated per snapshot.
 
 **Examples:**
 ```bash
-# Generate from snapshot (auto-discovers mode)
-chaim generate --package com.myapp.model
-
-# Generate from preview snapshot explicitly
-chaim generate --package com.myapp.model --mode preview
-
-# Generate from registered snapshot explicitly  
-chaim generate --package com.myapp.model --mode registered
+# Generate all entities into a flat package structure
+chaim generate --package com.mycompany.myapp.model
 
 # Filter by stack name
-chaim generate --stack MyAppStack --package com.myapp.model
+chaim generate --package com.mycompany.myapp.model --stack MyStack
+
+# Override snapshot directory
+chaim generate --package com.mycompany.myapp.model --snapshot-dir /custom/path
+
+# Skip pre-generation checks
+chaim generate --package com.mycompany.myapp.model --skip-checks
 ```
 
 **Error: No snapshot found**
 
-If no snapshot is found, the CLI will show:
-- Expected snapshot locations
-- Instructions to run `cdk synth` or `cdk deploy`
-- Any existing snapshots that didn't match your criteria
+If no snapshot is found, the CLI will:
+
+1. **Instruct you to run CDK** - Snapshots are created by `chaim-cdk`:
+   ```bash
+   cdk synth   # Creates LOCAL snapshot
+   cdk deploy  # Also creates LOCAL snapshot + publishes to Chaim SaaS
+   ```
+
+2. **Show the expected path structure** - Where snapshots should be located
+
+3. **Show applied filters** - If `--stack` was used
+
+4. **List existing snapshots** - If any snapshots exist but didn't match your criteria
+
+**Common causes:**
+- You haven't run `cdk synth` or `cdk deploy` yet
+- Your `--stack` filter doesn't match any snapshots
+- Snapshots are in a different location (use `--snapshot-dir` to override)
 
 ---
 
@@ -245,24 +210,6 @@ Validates a `.bprint` schema file against the Chaim specification.
 
 ```bash
 chaim validate <schemaFile>
-```
-
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `schemaFile` | string | Yes | Path to the `.bprint` file to validate |
-
-**Example:**
-```bash
-chaim validate ./schemas/user.bprint
-```
-
-**Output on Success:**
-```
-🔍 Validating schema: ./schemas/user.bprint
-✓ Schema is valid
-  Entity: userId
-  Version: v1
-  Fields: 5
 ```
 
 ---
@@ -275,105 +222,162 @@ Checks system environment and dependencies for proper configuration.
 chaim doctor
 ```
 
-**Checks Performed:**
-- Node.js version
-- AWS CLI availability
-- AWS credentials configuration
-- Java availability
-- AWS SDK availability
-
-**Example Output:**
-```
-🔍 Checking system environment...
-✓ Node.js version: v20.10.0
-✓ AWS credentials configured
-  Account: 123456789012
-  User: arn:aws:iam::123456789012:user/developer
-✓ Java version: 17.0.9
-✓ AWS SDK available
-✓ All checks passed
-```
-
 ---
 
 ## Snapshot Locations
 
-The CLI reads snapshots from a standardized directory structure created by `chaim-cdk`:
+The CLI reads LOCAL snapshots from a **global OS cache**. This allows the CLI to work from any directory without requiring access to the CDK project.
 
-```
-cdk.out/chaim/snapshots/
-├── preview/                    # Synth-time snapshots
-│   └── <stackName>.json       # e.g., MyStack.json
-└── registered/                 # Deploy-time snapshots  
-    └── <stackName>-<eventId>.json  # e.g., MyStack-550e8400-e29b-41d4-a716-446655440000.json
-```
+### OS Cache Locations
 
-### Snapshot Modes
+**Default:**
+- macOS/Linux: `~/.chaim/cache/snapshots/`
+- Windows: `%LOCALAPPDATA%/chaim/cache/snapshots/`
 
-| Mode | When Created | Contains | Purpose |
-|------|--------------|----------|---------|
-| `PREVIEW` | `cdk synth` | schema, dataStore, context, capturedAt | Local development, code generation without deploy |
-| `REGISTERED` | `cdk deploy` | All preview fields + eventId, contentHash | Production tracking, audit trail |
-
-### Generation Workflows
-
-**Preview Workflow (no deploy needed):**
-```bash
-cdk synth
-chaim generate --mode preview --package com.example.model
-```
-
-**Registered Workflow (after deploy):**
-```bash
-cdk deploy
-chaim generate --mode registered --package com.example.model
-```
-
-**Auto Mode (default):**
-```bash
-chaim generate --package com.example.model  # Uses registered if available, else preview
-```
-
----
-
-## Snapshot Discovery
-
-The CLI discovers and resolves snapshots from the standardized directory structure created by `chaim-cdk`.
-
-### Discovery Logic
-
-```typescript
-// Snapshot discovery service API
-function resolveSnapshot(
-  snapshotDir: string,
-  mode: 'preview' | 'registered' | 'auto',
-  stackFilter?: string
-): ResolvedSnapshot | undefined;
-
-// Auto mode priority:
-// 1. If registered snapshots exist → use latest registered
-// 2. Else if preview snapshots exist → use latest preview
-// 3. Else → error (no snapshot found)
-```
-
-### Snapshot Resolution
-
-| Input | Resolution |
-|-------|------------|
-| `--mode auto` (default) | Prefer registered, fallback to preview |
-| `--mode preview` | Only search `preview/` directory |
-| `--mode registered` | Only search `registered/` directory |
-| `--stack MyStack` | Filter snapshots by stack name |
+**Override:** Set `CHAIM_SNAPSHOT_DIR` environment variable, or use `--snapshot-dir` flag.
 
 ### Directory Structure
 
 ```
-cdk.out/chaim/snapshots/
-├── preview/                    # Created by: cdk synth
-│   └── <stackName>.json
-└── registered/                 # Created by: cdk deploy
-    └── <stackName>-<eventId>.json
+~/.chaim/cache/snapshots/
+└── aws/
+    └── {accountId}/
+        └── {region}/
+            └── {stackName}/
+                └── {datastoreType}/
+                    └── {resourceId}.json
 ```
+
+> **Note**: When CDK synthesizes with unresolved tokens (environment-agnostic stacks), `{accountId}` and/or `{region}` may be `unknown`. The CLI handles this by resolving region from `AWS_REGION` or `AWS_DEFAULT_REGION` environment variables, falling back to `us-east-1`.
+
+### Example
+
+```
+~/.chaim/cache/snapshots/
+└── aws/
+    └── 123456789012/
+        └── us-east-1/
+            └── MyStack/
+                └── dynamodb/
+                    ├── UsersTable__User.json
+                    └── UsersTable__AuditLog.json
+```
+
+### Example with Unresolved Tokens
+
+When CDK uses environment-agnostic stacks:
+
+```
+~/.chaim/cache/snapshots/
+└── aws/
+    └── unknown/
+        └── unknown/
+            └── MyStack/
+                └── dynamodb/
+                    └── UsersTable__User.json
+```
+
+### Resource ID Format
+
+`{resourceName}__{entityName}[__N]`
+
+- `resourceName`: User-provided display label
+- `entityName`: Entity name from `.bprint` schema
+- `__N`: Optional collision suffix
+
+### Snapshot Selection
+
+The CLI selects snapshots using these rules:
+1. Find all snapshots matching filters (--stack if provided)
+2. Sort by `capturedAt` timestamp (from payload), descending
+3. Select the newest snapshot(s)
+
+### Region Resolution
+
+When generating code, the CLI resolves region values using this priority:
+
+1. **Snapshot region** - Use region from snapshot if valid (not `unknown`)
+2. **AWS_REGION** - Environment variable
+3. **AWS_DEFAULT_REGION** - Environment variable
+4. **Default** - Falls back to `us-east-1`
+
+This ensures generated `ChaimConfig.java` has a valid region even when CDK synthesizes with environment-agnostic stacks that produce `unknown` values.
+
+### Package Name vs Schema Namespace
+
+The CLI separates two distinct concepts:
+
+| Concept | Source | Purpose | Example |
+|---------|--------|---------|---------|
+| **Java Package** | `--package` flag | Where generated files live in your codebase | `com.mycompany.myapp.model` |
+| **Entity Name** | `schema.namespace` | Domain/entity identifier in the schema | `user`, `order`, `product` |
+
+**Flat Structure:** All DTOs are generated into the single package specified by `--package`:
+
+```bash
+chaim generate --package com.mycompany.myapp.model
+```
+
+```
+src/main/java/com/mycompany/myapp/model/
+├── User.java           # from schema namespace: user
+├── Order.java          # from schema namespace: order  
+├── ChaimConfig.java
+└── ChaimMapperClient.java
+```
+
+This follows Java best practices:
+- **Reverse domain naming** for packages (`com.mycompany...`)
+- **Simple entity names** in schemas (`user`, `order`)
+- **All related DTOs** in one coherent package
+
+---
+
+## LOCAL Snapshot Payload Structure
+
+The CLI consumes `LocalSnapshotPayload` written by `chaim-cdk`. This is the contract between the two packages.
+
+### LocalSnapshotPayload Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `provider` | `'aws'` | Cloud provider |
+| `accountId` | string | AWS account ID (may be `'unknown'`) |
+| `region` | string | AWS region (may be `'unknown'`) |
+| `stackName` | string | CDK stack name |
+| `datastoreType` | string | Data store type (e.g., `'dynamodb'`) |
+| `resourceName` | string | User-provided display label |
+| `resourceId` | string | Generated ID: `{resourceName}__{entityName}[__N]` |
+| `identity` | object | Stable identity for collision detection |
+| `appId` | string | Application ID from CDK binder props |
+| `schema` | object | Validated `.bprint` schema data |
+| `dataStore` | object | Data store metadata (DynamoDB, etc.) |
+| `context` | object | CDK stack context |
+| `capturedAt` | string | ISO 8601 timestamp |
+
+### DynamoDB Metadata (dataStore)
+
+The CLI extracts these fields from DynamoDB snapshots for code generation:
+
+| Field | Description | Used In |
+|-------|-------------|---------|
+| `tableName` | Table name | `ChaimConfig.TABLE_NAME` |
+| `tableArn` | Table ARN | `ChaimConfig.TABLE_ARN` |
+| `region` | AWS region | `ChaimConfig.REGION` |
+| `partitionKey` | Partition key attribute | Key mapping |
+| `sortKey` | Sort key attribute (optional) | Key mapping |
+| `globalSecondaryIndexes` | GSI configurations | Index-aware queries |
+| `localSecondaryIndexes` | LSI configurations | Index-aware queries |
+
+### Schema Data (schema)
+
+| Field | Description | Used In |
+|-------|-------------|---------|
+| `schemaVersion` | Schema version | `chaimVersion` constant |
+| `namespace` | Java package hint | Entity derivation |
+| `entity.name` | Entity name | Class name |
+| `entity.fields` | Field definitions | DTO properties |
+| `entity.primaryKey` | Key configuration | Repository methods |
 
 ---
 
@@ -385,21 +389,21 @@ cdk.out/chaim/snapshots/
 sequenceDiagram
     participant User
     participant CDK as chaim-cdk
-    participant SnapDir as cdk.out/chaim/snapshots/
+    participant Cache as OS Cache
     participant CLI as chaim-cli
     participant Spec as chaim-bprint-spec
     participant Gen as Code Generator
     participant FS as File System
     
-    Note over User,CDK: Prerequisite: Create snapshot
+    Note over User,CDK: Prerequisite: Create LOCAL snapshot
     User->>CDK: cdk synth (or cdk deploy)
-    CDK->>SnapDir: Write snapshot file
+    CDK->>Cache: Write LOCAL snapshot to OS cache
     
-    Note over User,FS: Code generation
+    Note over User,FS: Code generation (from any directory!)
     User->>CLI: chaim generate --package com.example
     CLI->>CLI: Run pre-generation checks (doctor)
-    CLI->>SnapDir: Discover snapshots
-    SnapDir-->>CLI: Return latest snapshot
+    CLI->>Cache: Discover snapshots
+    Cache-->>CLI: Return newest snapshot(s)
     CLI->>CLI: Parse schema + dataStore metadata
     CLI->>Spec: Validate schema
     Spec-->>CLI: Validated schema
@@ -437,16 +441,6 @@ npm install -g @chaim-tools/chaim
 chaim <command> [options]
 ```
 
-The CLI is registered as a global binary via `package.json`:
-
-```json
-{
-  "bin": {
-    "chaim": "./dist/index.js"
-  }
-}
-```
-
 ---
 
 ## Development Commands
@@ -455,13 +449,10 @@ The CLI is registered as a global binary via `package.json`:
 |---------|---------|
 | `npm run build` | Build CLI and bundle dependencies |
 | `npm run build:cli` | Compile TypeScript to dist/ |
-| `npm run build:deps` | Bundle bprint-spec and cdk dependencies |
 | `npm test` | Run Vitest test suite |
 | `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Fix ESLint issues |
 | `npm run dev` | Run CLI in development mode (ts-node) |
-| `npm run start` | Run compiled CLI |
-| `npm run clean` | Remove dist/ and bundled-deps/ |
+| `npm run clean` | Remove dist/ |
 
 ---
 
@@ -471,13 +462,13 @@ The CLI is registered as a global binary via `package.json`:
 |------|---------|
 | `src/index.ts` | CLI entry point, Commander.js setup, command registration |
 | `src/commands/init.ts` | Prerequisites verification and dependency installation |
-| `src/commands/generate.ts` | SDK generation from snapshots |
+| `src/commands/generate.ts` | SDK generation from snapshots, region resolution |
 | `src/commands/validate.ts` | Schema validation using chaim-bprint-spec |
 | `src/commands/doctor.ts` | Environment health checks |
 | `src/services/snapshot-discovery.ts` | Snapshot file discovery and resolution |
-| `src/commands/cloudformation-reader.ts` | DEPRECATED: Legacy CloudFormation reader (not used) |
-| `shared/examples/orders.bprint` | Sample schema file for testing |
-| `shared/scripts/setup.sh` | Development environment setup script |
+| `src/services/os-cache-paths.ts` | OS cache directory utilities |
+| `src/types/snapshot-payload.ts` | TypeScript types for snapshot payloads and metadata |
+| `src/types/index.ts` | Type exports for the types module |
 
 ---
 
@@ -488,7 +479,7 @@ The CLI is registered as a global binary via `package.json`:
 | Package | Purpose |
 |---------|---------|
 | `@chaim-tools/chaim-bprint-spec` | Schema validation and TypeScript types |
-| `@chaim-tools/cdk-lib` | Produces snapshot files (upstream dependency) |
+| `@chaim-tools/cdk-lib` | Produces LOCAL snapshot files (upstream dependency) |
 | `@chaim-tools/client-java` | Code generation (Java implementation) |
 
 ### Workflow with Other Packages
@@ -496,16 +487,29 @@ The CLI is registered as a global binary via `package.json`:
 1. **Define Schema** (`chaim-bprint-spec`)
    - Create `.bprint` schema files defining entity structure
    
-2. **Create Snapshot** (`chaim-cdk`)
+2. **Create LOCAL Snapshot** (`chaim-cdk`)
    - Bind schemas to data stores using CDK constructs
-   - Run `cdk synth` (preview) or `cdk deploy` (registered)
-   - Snapshots written to `cdk.out/chaim/snapshots/`
+   - Run `cdk synth` or `cdk deploy`
+   - LOCAL snapshots written to OS cache (`~/.chaim/cache/snapshots/`)
+   - Snapshot contains: schema, dataStore metadata, context, identity
    
 3. **Generate SDK** (`chaim-cli`)
-   - Discover and read snapshot files
-   - Validate schema using `chaim-bprint-spec`
+   - Discover and read LOCAL snapshot files from OS cache
+   - Parse `LocalSnapshotPayload` and extract schema + metadata
+   - Resolve `unknown` region values from environment
    - Generate SDK code using language-specific generator
    - *Current*: Java code via `chaim-client-java`
+
+### Type Alignment
+
+The CLI maintains local type definitions that mirror the CDK's `LocalSnapshotPayload`:
+
+| CLI Type | CDK Type | Purpose |
+|----------|----------|---------|
+| `LocalSnapshotPayload` | `LocalSnapshotPayload` | Snapshot structure |
+| `DynamoDBMetadata` | `DynamoDBMetadata` | Table metadata |
+| `StackContext` | `StackContext` | CDK context |
+| `TableMetadata` | (CLI-only) | Java generator adapter |
 
 ---
 
@@ -518,7 +522,6 @@ Create `chaim.json` in your project root to avoid repeating CLI options:
   "defaults": {
     "package": "com.example.model",
     "output": "./src/main/java",
-    "region": "us-east-1",
     "stack": "MyStack"
   }
 }
@@ -527,6 +530,46 @@ Create `chaim.json` in your project root to avoid repeating CLI options:
 Then run without arguments:
 ```bash
 chaim generate
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `No snapshot found` | Missing LOCAL snapshot | Run `cdk synth` or `cdk deploy` in your CDK project first |
+| `--package is required` | Missing Java package | Provide `--package <name>` option |
+| `No matching snapshots` | Stack filter doesn't match | Remove or adjust `--stack` filter |
+| `AWS credentials not configured` | Missing AWS auth | Run `aws configure` |
+| `Schema validation failed` | Invalid `.bprint` file | Fix schema per error message |
+
+### No Snapshot Found
+
+The most common error is "No snapshot found". **LOCAL snapshots are a prerequisite** - you must run `cdk synth` or `cdk deploy` before using `chaim generate`.
+
+**Why this happens:**
+1. **CDK not run**: You haven't run `cdk synth` or `cdk deploy` yet
+2. **Stack filter mismatch**: Your `--stack` filter doesn't match any snapshots
+3. **Custom snapshot directory**: Snapshots are in a non-default location
+
+**Resolution:**
+```bash
+# Navigate to your CDK project directory
+cd my-cdk-project
+
+# Create a LOCAL snapshot (choose one)
+cdk synth    # Creates LOCAL snapshot
+cdk deploy   # Creates LOCAL snapshot + publishes to Chaim SaaS
+
+# Then run the CLI (from any directory!)
+chaim generate --package com.example.model
+
+# If you have filters, try without them first to see what's available
+chaim generate --package com.example.model
+# Then add filters based on what snapshots exist
 ```
 
 ---
@@ -540,187 +583,6 @@ chaim generate
 | `boolean` | `Boolean` |
 | `timestamp` | `Instant` |
 
-> Type mappings for other target languages will be documented as generators are added.
-
 ---
 
-## Error Handling
-
-### Common Errors
-
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| `No snapshot found` | Missing CDK snapshot | Run `cdk synth` or `cdk deploy` in your CDK project first |
-| `--package is required` | Missing Java package | Provide `--package <name>` option |
-| `Table 'X' not found in snapshot` | Invalid table name | Check table name in snapshot file |
-| `AWS credentials not configured` | Missing AWS auth | Run `aws configure` |
-| `Schema validation failed` | Invalid `.bprint` file | Fix schema per error message |
-
-### No Snapshot Found
-
-The most common error is "No snapshot found". This occurs when:
-
-1. **CDK not run**: You haven't run `cdk synth` or `cdk deploy` yet
-2. **Wrong directory**: You're running CLI from a different directory than your CDK project
-3. **Mode mismatch**: You specified `--mode registered` but only have preview snapshots
-4. **Stack mismatch**: You specified `--stack X` but snapshots are for stack Y
-
-**Resolution:**
-```bash
-# Navigate to your CDK project directory
-cd my-cdk-project
-
-# Create a snapshot
-cdk synth
-
-# Then run the CLI
-chaim generate --package com.example.model
-```
-
----
-
-## Testing
-
-### Running Tests
-
-```bash
-npm test
-```
-
-### Test Files
-
-| File | Coverage |
-|------|----------|
-| `src/index.test.ts` | CLI entry point |
-| `src/commands/generate.test.ts` | Generate command |
-| `src/commands/validate.test.ts` | Validate command |
-| `src/commands/init.test.ts` | Init command |
-| `src/commands/doctor.test.ts` | Doctor command |
-| `src/services/snapshot-discovery.test.ts` | Snapshot discovery |
-
----
-
-**Note**: This document reflects the chaim-cli architecture as a TypeScript-based CLI tool. The CLI consumes snapshot files produced by `chaim-cdk` and generates type-safe SDKs. Snapshots are required; the CLI does not fall back to CloudFormation. The current implementation targets AWS (DynamoDB) with Java SDK generation; the architecture supports extension to other target languages.
-
-
-```mermaid
-sequenceDiagram
-    autonumber
-
-    %% =========================
-    %% DEVELOPMENT (FAST LOOP)
-    %% =========================
-    box rgba(240,248,255,0.7) Development / Beta (Fast Loop: synth-first)
-      participant Dev as Developer
-      participant CDK as AWS CDK (synth)
-      participant Binder as ChaimDynamoDBBinder (CDK construct)
-      participant Out as cdk.out (local)
-      participant CLI as chaim-cli
-      participant FS as Project Workspace (generated code)
-    end
-
-    Dev->>CDK: cdk synth (dev env)
-    CDK->>Binder: construct executes at synth time
-    Binder->>Binder: Load + validate .bprint (chaim-bprint-spec)
-    Binder->>Binder: Extract declared DynamoDB config (keys/indexes/ttl/streams/encryption)
-    Binder->>Binder: Build SynthSnapshot (intent + stack context)
-    Binder->>Out: Write snapshot file\ncdk.out/chaim/snapshots/<stack>.json
-
-    Note over Dev,Out: No AWS calls required.\nNo deployment.\nNo Chaim SaaS ingestion.
-
-    Dev->>CLI: chaim generate --from-synth --stack <stack> (dev)
-    CLI->>Out: Read SynthSnapshot JSON
-    CLI->>CLI: Validate schema again (defensive)
-    CLI->>CLI: Generate DTOs + mapper clients + config
-    CLI->>FS: Write generated Java SDK\n(e.g., ./generated or src/main/java)
-    CLI-->>Dev: Success summary + generated paths
-
-    Note over Dev,FS: Dev can iterate rapidly:\nEdit .bprint -> cdk synth -> chaim generate
-
-    %% =========================
-    %% PRODUCTION (AUTHORITATIVE)
-    %% =========================
-    box rgba(245,245,245,0.8) Production (Deploy-time source of truth)
-      participant Prod as Release Engineer / CI
-      participant CDKDeploy as AWS CDK (deploy)
-      participant CFN as CloudFormation
-      participant CR as CFN Custom Resource (Lambda-backed)
-      participant IngestAPI as Chaim Ingest API
-      participant S3 as Chaim S3 (presigned upload)
-      participant Catalog as Chaim Platform (metadata store)
-      participant CLIProd as chaim-cli
-      participant FSProd as Repo / Build Output
-    end
-
-    Prod->>CDKDeploy: cdk deploy (prod env)
-    CDKDeploy->>CFN: Create/Update Stack
-    CFN->>CR: Invoke Custom Resource (Create/Update/Delete)
-    CR->>CR: Collect deployed context (account/region/stack identifiers)
-    CR->>CR: Build DeploySnapshot bytes (schema + resource metadata + context)\n(eventId + contentHash)
-    CR->>IngestAPI: POST /ingest/upload-url (HMAC auth)
-    IngestAPI-->>CR: Presigned S3 URL + object key
-    CR->>S3: PUT snapshot bytes (no size constraint)
-    CR->>IngestAPI: POST /ingest/snapshot-ref (eventId, contentHash, s3 pointer, metadata)
-    IngestAPI->>Catalog: Persist governed metadata (track versions, resource inventory)
-    IngestAPI-->>CR: 202 ACCEPTED (eventId)
-    CR-->>CFN: SUCCESS/FAILED (based on FailureMode)
-    CFN-->>CDKDeploy: Stack completes
-
-    Note over Prod,Catalog: Deploy-time snapshot is authoritative:\n"what exists" + "what was deployed"
-
-    %% =========================
-    %% CLI GENERATION (PRODUCTION)
-    %% =========================
-    Prod->>CLIProd: chaim generate --stack <stack> (prod)
-    CLIProd->>CFN: Describe stack outputs (or lookup stack context)
-    CFN-->>CLIProd: Stack metadata (minimal) (or identifiers)
-    CLIProd->>IngestAPI: (optional future) GET snapshot by eventId\nor query latest schema for appId
-    IngestAPI-->>CLIProd: Snapshot metadata + schema\n(or pointer/ref)
-    CLIProd->>CLIProd: Generate DTOs + mapper clients
-    CLIProd->>FSProd: Write generated SDK artifacts
-    CLIProd-->>Prod: Success summary
-
-    Note over CLIProd,FSProd: In production, CLI generation should prefer\nauthoritative deployed snapshot when available.\nIf not available, it can fall back to synth snapshot.
-```
-
-```mermaid
-flowchart TD
-  A["Developer edits .bprint + CDK stack"] --> B{"Which workflow?"}
-
-  %% =========================
-  %% Shared (Reusable Pipeline)
-  %% =========================
-  SB["SnapshotBuilder<br/>Validate .bprint + extract metadata + stack context<br/>Serialize bytes + contentHash"]:::shared
-  AW["ArtifactWriter<br/>Write snapshot artifact"]:::shared
-  CLI["chaim-cli generate<br/>Consumes snapshot artifact OR authoritative snapshot"]:::shared
-  GEN["Generate DTOs + mapper clients"]:::shared
-
-  %% ---------- Preview  ----------
-  B -->|Preview| C["Run: cdk synth"]:::dev
-  C --> SB
-  SB --> AW
-  AW --> D1["Write to cdk.out/chaim/snapshots/STACK_NAME.json"]:::dev
-  D1 --> CLI
-  CLI --> GEN
-  GEN --> E1["App dev continues<br/>No deploy required"]:::dev
-
-  %% ---------- PROD ----------
-  B -->|Register| P["Run: cdk deploy"]:::prod
-  P --> CR["CloudFormation Custom Resource"]:::prod
-  CR --> SB
-  SB --> AW
-  AW --> T2["Write to /tmp/chaim/snapshots/EVENT_ID.json"]:::prod
-  T2 --> PUB["ChaimIngestPublisher<br/>upload-url -> PUT -> snapshot-ref"]:::prod
-  PUB --> CH["Chaim persists governed metadata<br/>Versioning + inventory"]:::prod
-  CH --> CLI
-  CLI --> GEN
-
-  classDef shared fill:#E8F0FE,stroke:#1A73E8,stroke-width:1px,color:#111;
-  classDef dev fill:#E8F5E9,stroke:#1B5E20,stroke-width:1px,color:#111;
-  classDef prod fill:#FFF3E0,stroke:#E65100,stroke-width:1px,color:#111;
-
-  class SB,AW,CLI,GEN shared;
-  class C,D1,E1 dev;
-  class P,CR,T2,PUB,CH prod;
-
-```
+**Note**: This document reflects the chaim-cli architecture as a TypeScript-based CLI tool. The CLI consumes LOCAL snapshot files from the OS cache produced by `chaim-cdk` and generates type-safe SDKs. LOCAL snapshots are required; the CLI does not make any API calls. The current implementation targets AWS (DynamoDB) with Java SDK generation.

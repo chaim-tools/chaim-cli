@@ -44,13 +44,11 @@ program
 
 program
   .command('generate')
-  .description('Generate Java SDK from CDK snapshot (requires cdk synth or deploy)')
-  .option('--stack <stackName>', 'Filter snapshots by stack name')
-  .option('--table <tableName>', 'Specific table name to generate (optional)')
-  .option('--package <packageName>', 'Java package name (required)')
+  .description('Generate Java SDK from LOCAL snapshot (reads from OS cache)')
+  .requiredOption('--package <packageName>', 'Java package name (e.g., com.mycompany.myapp.model)')
   .option('--output <outputDir>', 'Output directory', './src/main/java')
-  .option('--snapshot-dir <path>', 'Snapshot directory path', 'cdk.out/chaim/snapshots')
-  .option('--mode <mode>', 'Snapshot mode: preview, registered, or auto', 'auto')
+  .option('--stack <stackName>', 'Filter by CDK stack name (optional)')
+  .option('--snapshot-dir <path>', 'Override snapshot directory (default: OS cache)')
   .option('--skip-checks', 'Skip environment and schema validation checks')
   .action(generateCommand);
 

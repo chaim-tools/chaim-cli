@@ -52,17 +52,17 @@ chaim init
 ### Generate SDK
 
 ```bash
-# Auto-detect snapshot mode (registered preferred, then preview)
+# Generate all entities (auto mode)
 chaim generate --package com.example.model
 
 # Use preview snapshot explicitly
 chaim generate --mode preview --package com.example.model
 
-# Use registered snapshot explicitly
-chaim generate --mode registered --package com.example.model
+# Filter by account/region/stack
+chaim generate --account 123456789012 --region us-east-1 --stack MyStack --package com.example.model
 
-# Filter by stack name
-chaim generate --stack MyStack --package com.example.model
+# Filter by entity or table
+chaim generate --entity User --package com.example.model
 ```
 
 **Options:**
@@ -70,11 +70,15 @@ chaim generate --stack MyStack --package com.example.model
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--package` | Java package name (required) | - |
+| `--output` | Output directory | ./src/main/java |
 | `--snapshot-dir` | Snapshot directory path | cdk.out/chaim/snapshots |
 | `--mode` | Snapshot mode: `preview`, `registered`, `auto` | auto |
-| `--stack` | Filter snapshots by stack name | - |
-| `--output` | Output directory | ./src/main/java |
-| `--table` | Specific table to generate | All tables |
+| `--account` | Filter by AWS account ID | - |
+| `--region` | Filter by AWS region | - |
+| `--stack` | Filter by CDK stack name | - |
+| `--datastore` | Filter by data store type (dynamodb, aurora, s3) | - |
+| `--table` | Filter by table/resource name | - |
+| `--entity` | Filter by entity name | - |
 | `--skip-checks` | Skip environment checks | false |
 
 ### Other Commands
@@ -90,29 +94,48 @@ chaim validate ./schemas/user.bprint
 chaim doctor
 ```
 
-## Snapshot Modes
+## Snapshot Structure
 
-| Mode | Created By | Location | Use Case |
-|------|------------|----------|----------|
-| Preview | `cdk synth` | `preview/<stackName>.json` | Development, rapid iteration |
-| Registered | `cdk deploy` | `registered/<stackName>-<eventId>.json` | Production, audit trail |
+Snapshots use a hierarchical directory structure:
+
+```
+cdk.out/chaim/snapshots/{mode}/{accountId}/{region}/{stackName}/{dataStoreType}/{resourceId}.json
+```
+
+**Example:**
+```
+preview/123456789012/us-east-1/MyStack/dynamodb/UsersTable__User__a1b2c3d4.json
+```
+
+| Mode | Created By | Use Case |
+|------|------------|----------|
+| Preview | `cdk synth` | Development, rapid iteration |
+| Registered | `cdk deploy` | Production, audit trail |
 
 **Auto mode** (default): Uses registered if available, otherwise preview.
 
 ## Error: No Snapshot Found
 
-If you see "No snapshot found", it means you haven't run `cdk synth` or `cdk deploy` yet:
+If you see "No snapshot found", **you need to create a snapshot first**. Snapshots are created by `chaim-cdk`:
 
 ```bash
 # Navigate to your CDK project
 cd my-cdk-project
 
-# Create a snapshot
-cdk synth
+# Create a snapshot (choose one)
+cdk synth    # For development (preview snapshot)
+cdk deploy   # For production (registered snapshot)
 
 # Then generate
 chaim generate --package com.example.model
 ```
+
+**Common causes:**
+- Haven't run `cdk synth` or `cdk deploy` yet
+- Running CLI from wrong directory (run from your CDK project root)
+- Filters (`--stack`, `--account`, `--region`) don't match existing snapshots
+
+**Tip:** The CLI shows existing snapshots that didn't match your filters, helping you adjust.
 
 ## Using the Generated SDK
 

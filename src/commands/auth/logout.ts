@@ -48,3 +48,4 @@ export function registerAuthLogoutCommand(program: Command): Command {
   return program;
 }
 
+

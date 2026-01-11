@@ -45,3 +45,4 @@ export function registerAppsListCommand(program: Command): Command {
   return program;
 }
 
+

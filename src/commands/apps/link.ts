@@ -48,3 +48,4 @@ export function registerAppsLinkCommand(program: Command): Command {
   return program;
 }
 
+

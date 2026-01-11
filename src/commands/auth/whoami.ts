@@ -47,3 +47,4 @@ export function registerAuthWhoamiCommand(program: Command): Command {
   return program;
 }
 
+

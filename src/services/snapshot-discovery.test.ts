@@ -2,13 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  listSnapshots,
-  listSnapshotsForStack,
+  discoverSnapshots,
   getLatestSnapshot,
-  hasSnapshots,
   resolveSnapshot,
+  resolveAllSnapshots,
   getSnapshotDirPath,
-  DEFAULT_SNAPSHOT_DIR,
 } from './snapshot-discovery';
 
 // Mock fs module
@@ -23,302 +21,200 @@ vi.mock('fs', async () => {
   };
 });
 
+// Mock os-cache-paths
+vi.mock('./os-cache-paths', () => ({
+  getSnapshotBaseDir: vi.fn().mockReturnValue('/mock/.chaim/cache/snapshots'),
+}));
+
 describe('snapshot-discovery', () => {
-  const mockCwd = '/mock/project';
-  
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(process, 'cwd').mockReturnValue(mockCwd);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('getSnapshotDirPath', () => {
-    it('should return absolute path for relative directory', () => {
-      const result = getSnapshotDirPath('cdk.out/chaim/snapshots');
-      expect(result).toBe(path.join(mockCwd, 'cdk.out/chaim/snapshots'));
-    });
+  describe('discoverSnapshots', () => {
+    it('should return empty array when aws directory does not exist', () => {
+      (fs.existsSync as any).mockReturnValue(false);
 
-    it('should return absolute path unchanged', () => {
-      const result = getSnapshotDirPath('/absolute/path/to/snapshots');
-      expect(result).toBe('/absolute/path/to/snapshots');
-    });
-
-    it('should use default directory when not specified', () => {
-      const result = getSnapshotDirPath();
-      expect(result).toBe(path.join(mockCwd, DEFAULT_SNAPSHOT_DIR));
-    });
-  });
-
-  describe('listSnapshots', () => {
-    it('should return empty array when directory does not exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = listSnapshots('/snapshots', 'preview');
-      
+      const result = discoverSnapshots('/mock/cache');
       expect(result).toEqual([]);
     });
 
-    it('should list preview snapshots correctly', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json', 'OtherStack.json'] as any);
-      vi.mocked(fs.statSync).mockImplementation((filePath: any) => ({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any));
-      
-      const result = listSnapshots('/snapshots', 'preview');
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].stackName).toBe('MyStack');
-      expect(result[0].mode).toBe('preview');
-      expect(result[1].stackName).toBe('OtherStack');
-    });
+    it('should discover snapshots in hierarchical structure', () => {
+      const mockStructure = {
+        '/mock/cache/aws': true,
+        '/mock/cache/aws/123456789012': true,
+        '/mock/cache/aws/123456789012/us-east-1': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack/dynamodb': true,
+      };
 
-    it('should list registered snapshots with eventId', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue([
-        'MyStack-550e8400-e29b-41d4-a716-446655440000.json',
-      ] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      
-      const result = listSnapshots('/snapshots', 'registered');
-      
-      expect(result).toHaveLength(1);
-      expect(result[0].stackName).toBe('MyStack');
-      expect(result[0].mode).toBe('registered');
-      expect(result[0].eventId).toBe('550e8400-e29b-41d4-a716-446655440000');
-    });
-
-    it('should sort by mtime descending (newest first)', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['Old.json', 'New.json'] as any);
-      vi.mocked(fs.statSync).mockImplementation((filePath: any) => {
-        const isNew = (filePath as string).includes('New');
-        return {
-          isFile: () => true,
-          mtime: isNew ? new Date('2024-01-20') : new Date('2024-01-10'),
-        } as any;
+      (fs.existsSync as any).mockImplementation((p: string) => !!mockStructure[p]);
+      (fs.readdirSync as any).mockImplementation((dir: string) => {
+        if (dir === '/mock/cache/aws') return ['123456789012'];
+        if (dir === '/mock/cache/aws/123456789012') return ['us-east-1'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1') return ['MyStack'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1/MyStack') return ['dynamodb'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1/MyStack/dynamodb') return ['UsersTable__User.json'];
+        return [];
       });
-      
-      const result = listSnapshots('/snapshots', 'preview');
-      
-      expect(result[0].stackName).toBe('New');
-      expect(result[1].stackName).toBe('Old');
-    });
-
-    it('should ignore non-json files', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json', 'readme.txt', '.hidden'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
+      (fs.statSync as any).mockImplementation(() => ({
+        isDirectory: () => true,
         isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      
-      const result = listSnapshots('/snapshots', 'preview');
-      
-      expect(result).toHaveLength(1);
+        mtime: new Date('2024-01-01'),
+      }));
+      (fs.readFileSync as any).mockReturnValue(JSON.stringify({
+        capturedAt: '2024-01-01T12:00:00Z',
+      }));
+
+      const result = discoverSnapshots('/mock/cache');
+
+      expect(result.length).toBe(1);
+      expect(result[0].accountId).toBe('123456789012');
+      expect(result[0].region).toBe('us-east-1');
       expect(result[0].stackName).toBe('MyStack');
+      expect(result[0].datastoreType).toBe('dynamodb');
+      expect(result[0].resourceName).toBe('UsersTable');
+      expect(result[0].entityName).toBe('User');
     });
-  });
 
-  describe('listSnapshotsForStack', () => {
-    it('should filter snapshots by stack name', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['StackA.json', 'StackB.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
+    it('should filter by stack name', () => {
+      const mockStructure = {
+        '/mock/cache/aws': true,
+        '/mock/cache/aws/123456789012': true,
+        '/mock/cache/aws/123456789012/us-east-1': true,
+        '/mock/cache/aws/123456789012/us-east-1/StackA': true,
+        '/mock/cache/aws/123456789012/us-east-1/StackB': true,
+        '/mock/cache/aws/123456789012/us-east-1/StackA/dynamodb': true,
+        '/mock/cache/aws/123456789012/us-east-1/StackB/dynamodb': true,
+      };
+
+      (fs.existsSync as any).mockImplementation((p: string) => !!mockStructure[p]);
+      (fs.readdirSync as any).mockImplementation((dir: string) => {
+        if (dir === '/mock/cache/aws') return ['123456789012'];
+        if (dir === '/mock/cache/aws/123456789012') return ['us-east-1'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1') return ['StackA', 'StackB'];
+        if (dir.includes('StackA/dynamodb')) return ['Table__Entity.json'];
+        if (dir.includes('StackB/dynamodb')) return ['Table__Entity.json'];
+        if (dir.endsWith('dynamodb')) return ['Table__Entity.json'];
+        return [];
+      });
+      (fs.statSync as any).mockImplementation(() => ({
+        isDirectory: () => true,
         isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      
-      const result = listSnapshotsForStack('/snapshots', 'preview', 'StackA');
-      
-      expect(result).toHaveLength(1);
+        mtime: new Date('2024-01-01'),
+      }));
+      (fs.readFileSync as any).mockReturnValue(JSON.stringify({
+        capturedAt: '2024-01-01T12:00:00Z',
+      }));
+
+      const result = discoverSnapshots('/mock/cache', { stackName: 'StackA' });
+
+      expect(result.length).toBe(1);
       expect(result[0].stackName).toBe('StackA');
+    });
+
+    it('should sort by capturedAt descending (newest first)', () => {
+      const mockStructure = {
+        '/mock/cache/aws': true,
+        '/mock/cache/aws/123456789012': true,
+        '/mock/cache/aws/123456789012/us-east-1': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack/dynamodb': true,
+      };
+
+      (fs.existsSync as any).mockImplementation((p: string) => !!mockStructure[p]);
+      (fs.readdirSync as any).mockImplementation((dir: string) => {
+        if (dir === '/mock/cache/aws') return ['123456789012'];
+        if (dir === '/mock/cache/aws/123456789012') return ['us-east-1'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1') return ['MyStack'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1/MyStack') return ['dynamodb'];
+        if (dir.endsWith('dynamodb')) return ['Old__Entity.json', 'New__Entity.json'];
+        return [];
+      });
+      (fs.statSync as any).mockImplementation(() => ({
+        isDirectory: () => true,
+        isFile: () => true,
+        mtime: new Date('2024-01-01'),
+      }));
+      
+      let readCount = 0;
+      (fs.readFileSync as any).mockImplementation(() => {
+        readCount++;
+        if (readCount === 1) {
+          return JSON.stringify({ capturedAt: '2024-01-01T12:00:00Z' }); // Old
+        }
+        return JSON.stringify({ capturedAt: '2024-06-01T12:00:00Z' }); // New
+      });
+
+      const result = discoverSnapshots('/mock/cache');
+
+      expect(result.length).toBe(2);
+      // Newest should be first
+      expect(result[0].resourceName).toBe('New');
     });
   });
 
   describe('getLatestSnapshot', () => {
-    it('should return the most recent snapshot', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['Old.json', 'New.json'] as any);
-      vi.mocked(fs.statSync).mockImplementation((filePath: any) => {
-        const isNew = (filePath as string).includes('New');
-        return {
-          isFile: () => true,
-          mtime: isNew ? new Date('2024-01-20') : new Date('2024-01-10'),
-        } as any;
+    it('should return the first (newest) snapshot', () => {
+      const mockStructure = {
+        '/mock/cache/aws': true,
+        '/mock/cache/aws/123456789012': true,
+        '/mock/cache/aws/123456789012/us-east-1': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack': true,
+        '/mock/cache/aws/123456789012/us-east-1/MyStack/dynamodb': true,
+      };
+
+      (fs.existsSync as any).mockImplementation((p: string) => !!mockStructure[p]);
+      (fs.readdirSync as any).mockImplementation((dir: string) => {
+        if (dir === '/mock/cache/aws') return ['123456789012'];
+        if (dir === '/mock/cache/aws/123456789012') return ['us-east-1'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1') return ['MyStack'];
+        if (dir === '/mock/cache/aws/123456789012/us-east-1/MyStack') return ['dynamodb'];
+        if (dir.endsWith('dynamodb')) return ['Table__Entity.json'];
+        return [];
       });
-      
-      const result = getLatestSnapshot('/snapshots', 'preview');
-      
-      expect(result?.stackName).toBe('New');
-    });
-
-    it('should return undefined when no snapshots exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = getLatestSnapshot('/snapshots', 'preview');
-      
-      expect(result).toBeUndefined();
-    });
-
-    it('should filter by stack name when provided', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['StackA.json', 'StackB.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
+      (fs.statSync as any).mockImplementation(() => ({
+        isDirectory: () => true,
         isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      
-      const result = getLatestSnapshot('/snapshots', 'preview', 'StackB');
-      
-      expect(result?.stackName).toBe('StackB');
-    });
-  });
+        mtime: new Date('2024-01-01'),
+      }));
+      (fs.readFileSync as any).mockReturnValue(JSON.stringify({
+        capturedAt: '2024-01-01T12:00:00Z',
+      }));
 
-  describe('hasSnapshots', () => {
-    it('should return true when snapshots exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json'] as any);
-      
-      const result = hasSnapshots('/snapshots', 'preview');
-      
-      expect(result).toBe(true);
-    });
+      const result = getLatestSnapshot('/mock/cache');
 
-    it('should return false when directory does not exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = hasSnapshots('/snapshots', 'preview');
-      
-      expect(result).toBe(false);
-    });
-
-    it('should return false when no json files exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['readme.txt'] as any);
-      
-      const result = hasSnapshots('/snapshots', 'preview');
-      
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('resolveSnapshot', () => {
-    const mockSnapshot = {
-      snapshotMode: 'PREVIEW',
-      appId: 'test-app',
-      schema: { entity: { name: 'User' } },
-      dataStore: { type: 'dynamodb' },
-    };
-
-    it('should use preview when mode is preview', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSnapshot));
-      
-      const result = resolveSnapshot('/snapshots', 'preview');
-      
-      expect(result?.modeUsed).toBe('preview');
-    });
-
-    it('should use registered when mode is registered', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue([
-        'MyStack-550e8400-e29b-41d4-a716-446655440000.json',
-      ] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ ...mockSnapshot, snapshotMode: 'REGISTERED' }));
-      
-      const result = resolveSnapshot('/snapshots', 'registered');
-      
-      expect(result?.modeUsed).toBe('registered');
-    });
-
-    it('should prefer registered over preview in auto mode', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: any) => {
-        if ((dir as string).includes('registered')) {
-          return ['MyStack-550e8400-e29b-41d4-a716-446655440000.json'] as any;
-        }
-        return ['MyStack.json'] as any;
-      });
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ ...mockSnapshot, snapshotMode: 'REGISTERED' }));
-      
-      const result = resolveSnapshot('/snapshots', 'auto');
-      
-      expect(result?.modeUsed).toBe('registered');
-    });
-
-    it('should fall back to preview when registered is empty in auto mode', () => {
-      vi.mocked(fs.existsSync).mockImplementation((dir: any) => {
-        return (dir as string).includes('preview');
-      });
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSnapshot));
-      
-      const result = resolveSnapshot('/snapshots', 'auto');
-      
-      expect(result?.modeUsed).toBe('preview');
+      expect(result).toBeDefined();
+      expect(result?.resourceName).toBe('Table');
     });
 
     it('should return undefined when no snapshots found', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      
-      const result = resolveSnapshot('/snapshots', 'auto');
-      
+      (fs.existsSync as any).mockReturnValue(false);
+
+      const result = getLatestSnapshot('/mock/cache');
       expect(result).toBeUndefined();
     });
+  });
 
-    it('should parse and return snapshot content', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['MyStack.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSnapshot));
-      
-      const result = resolveSnapshot('/snapshots', 'preview');
-      
-      expect(result?.snapshot).toEqual(mockSnapshot);
-      expect(result?.stackName).toBe('MyStack');
+  describe('getSnapshotDirPath', () => {
+    it('should return OS cache when no path provided', () => {
+      const result = getSnapshotDirPath();
+      expect(result).toBe('/mock/.chaim/cache/snapshots');
     });
 
-    it('should filter by stack name when provided', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(['StackA.json', 'StackB.json'] as any);
-      vi.mocked(fs.statSync).mockReturnValue({
-        isFile: () => true,
-        mtime: new Date('2024-01-15'),
-      } as any);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSnapshot));
-      
-      const result = resolveSnapshot('/snapshots', 'preview', 'StackB');
-      
-      expect(result?.stackName).toBe('StackB');
+    it('should return absolute path as-is', () => {
+      const result = getSnapshotDirPath('/custom/absolute/path');
+      expect(result).toBe('/custom/absolute/path');
+    });
+
+    it('should resolve relative path against cwd', () => {
+      const cwd = process.cwd();
+      const result = getSnapshotDirPath('relative/path');
+      expect(result).toBe(path.join(cwd, 'relative/path'));
     });
   });
 });
-

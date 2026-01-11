@@ -51,3 +51,4 @@ export function registerConfigureCommand(program: Command): Command {
   return program;
 }
 
+
