@@ -166,7 +166,26 @@ async function runPreGenerationChecks(): Promise<void> {
 }
 
 /**
+ * Get a unique table identity for grouping entities.
+ * Prefers tableArn (globally unique), falls back to composite key.
+ */
+function getTableIdentity(snapshot: ResolvedSnapshot): string {
+  const ds = snapshot.snapshot.dataStore;
+  
+  // Prefer ARN if it's resolved (not a CDK token)
+  const tableArn = ds.tableArn || ds.arn;
+  if (tableArn && !tableArn.includes('${')) {
+    return tableArn;
+  }
+  
+  // Fallback to composite key: {accountId}:{region}:{tableName}
+  const tableName = ds.tableName || ds.name;
+  return `${snapshot.accountId}:${snapshot.region}:${tableName}`;
+}
+
+/**
  * Generate SDK from multiple resolved snapshots.
+ * Groups entities by physical table and generates shared infrastructure once per table.
  */
 async function generateFromSnapshots(
   snapshots: ResolvedSnapshot[],
@@ -176,54 +195,59 @@ async function generateFromSnapshots(
   console.log(chalk.blue(`\nGenerating ${language.toUpperCase()} code from ${snapshots.length} LOCAL snapshot(s)`));
   console.log('');
 
-  // Group snapshots by account/region/stack for organized output
-  const grouped = new Map<string, ResolvedSnapshot[]>();
+  // Group snapshots by table identity (ARN or composite key)
+  // This ensures multiple entities for the same physical table are generated together
+  const byTable = new Map<string, ResolvedSnapshot[]>();
   for (const snap of snapshots) {
-    const key = `${snap.accountId}/${snap.region}/${snap.stackName}/${snap.datastoreType}`;
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
+    const tableId = getTableIdentity(snap);
+    if (!byTable.has(tableId)) {
+      byTable.set(tableId, []);
     }
-    grouped.get(key)!.push(snap);
+    byTable.get(tableId)!.push(snap);
   }
 
-  const results: { entity: string; resource: string; success: boolean; error?: string }[] = [];
+  const results: { tableId: string; entities: string[]; success: boolean; error?: string }[] = [];
   const spinner = ora('Generating SDK...').start();
 
   try {
-    for (const [key, groupSnapshots] of grouped) {
-      const [acct, reg, stack, dsType] = key.split('/');
-      spinner.text = `Generating for ${stack}/${dsType}...`;
+    for (const [tableId, tableSnapshots] of byTable) {
+      const firstSnapshot = tableSnapshots[0];
+      const tableName = firstSnapshot.snapshot.dataStore.tableName || firstSnapshot.snapshot.dataStore.name;
+      spinner.text = `Generating for table ${tableName} (${tableSnapshots.length} entities)...`;
 
-      for (const resolved of groupSnapshots) {
-        const snapshot = resolved.snapshot;
-        const schema = snapshot.schema;
-        const dataStore = snapshot.dataStore;
-        const context = snapshot.context;
+      // Collect all schemas for this table
+      const schemas = tableSnapshots.map(s => s.snapshot.schema);
+      const entityNames = tableSnapshots.map(s => s.entityName);
+      
+      // Create table metadata from the first snapshot (all snapshots share the same table)
+      const tableMetadata = createTableMetadataFromSnapshot(
+        firstSnapshot.snapshot.dataStore, 
+        firstSnapshot.snapshot.context
+      );
 
-        // Use --package for Java package location (required)
-        // schema.namespace is the entity/domain name, not the Java package
-        const packageName = options.package;
+      try {
+        const javaGenerator = new JavaGenerator();
+        
+        // Use the new generateForTable API that accepts multiple schemas
+        await javaGenerator.generateForTable(
+          schemas, 
+          options.package, 
+          options.output, 
+          tableMetadata
+        );
 
-        // Create a table metadata adapter for the Java generator
-        const tableMetadata = createTableMetadataFromSnapshot(dataStore, context);
-
-        try {
-          const javaGenerator = new JavaGenerator();
-          await javaGenerator.generate(schema, packageName, options.output, tableMetadata);
-
-          results.push({
-            entity: resolved.entityName,
-            resource: resolved.resourceName,
-            success: true,
-          });
-        } catch (error) {
-          results.push({
-            entity: resolved.entityName,
-            resource: resolved.resourceName,
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
+        results.push({
+          tableId,
+          entities: entityNames,
+          success: true,
+        });
+      } catch (error) {
+        results.push({
+          tableId,
+          entities: entityNames,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -231,36 +255,42 @@ async function generateFromSnapshots(
 
     // Print summary
     console.log('');
-    const successCount = results.filter((r) => r.success).length;
-    const failCount = results.filter((r) => !r.success).length;
+    let totalEntities = 0;
+    let failedTables = 0;
 
-    for (const [key, groupSnapshots] of grouped) {
-      const [acct, reg, stack, dsType] = key.split('/');
-      console.log(chalk.cyan(`  Account: ${acct} / Region: ${reg}`));
-      console.log(chalk.cyan(`    Stack: ${stack} / DataStore: ${dsType}`));
-
-      for (const snap of groupSnapshots) {
-        const result = results.find((r) => r.entity === snap.entityName && r.resource === snap.resourceName);
-        if (result?.success) {
-          console.log(chalk.green(`      ✓ ${snap.entityName}.java (${snap.resourceName})`));
-        } else {
-          console.log(chalk.red(`      ✗ ${snap.entityName}.java (${snap.resourceName}) - ${result?.error}`));
+    for (const result of results) {
+      const tableSnapshots = byTable.get(result.tableId)!;
+      const firstSnap = tableSnapshots[0];
+      const tableName = firstSnap.snapshot.dataStore.tableName || firstSnap.snapshot.dataStore.name;
+      
+      console.log(chalk.cyan(`  Table: ${tableName}`));
+      console.log(chalk.gray(`    Identity: ${result.tableId}`));
+      
+      if (result.success) {
+        for (const entity of result.entities) {
+          console.log(chalk.green(`      ✓ ${entity}.java`));
+          totalEntities++;
+        }
+      } else {
+        failedTables++;
+        for (const entity of result.entities) {
+          console.log(chalk.red(`      ✗ ${entity}.java - ${result.error}`));
         }
       }
     }
 
     console.log('');
-    if (failCount === 0) {
-      console.log(chalk.green(`✓ Generated ${successCount} entity/entities successfully`));
+    if (failedTables === 0) {
+      console.log(chalk.green(`✓ Generated ${totalEntities} entity/entities across ${results.length} table(s) successfully`));
     } else {
-      console.log(chalk.yellow(`Generated ${successCount} entity/entities, ${failCount} failed`));
+      console.log(chalk.yellow(`Generated ${totalEntities} entities, ${failedTables} table(s) failed`));
     }
 
     console.log(chalk.green('  Language:'), language);
     console.log(chalk.green('  Output directory:'), path.resolve(options.output));
     console.log(chalk.green('  Package:'), options.package);
 
-    if (failCount > 0) {
+    if (failedTables > 0) {
       process.exit(1);
     }
   } catch (error) {
