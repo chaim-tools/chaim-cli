@@ -1,28 +1,30 @@
 # chaim-cli
 
-A **schema-driven code generation tool** that transforms `.bprint` schema definitions into complete Java SDKs with DynamoDB Mapper clients, DTOs, and configuration management.
+A **schema-driven code generation tool** that transforms `.bprint` schema snapshots into complete Java SDKs with DynamoDB Mapper clients, DTOs, and configuration management.
 
 ## Prerequisite
 
-> **IMPORTANT**: You must run `cdk synth` or `cdk deploy` before using this CLI.
+> **IMPORTANT**: You must run `cdk synth` or `cdk deploy` in your CDK project before using this CLI.
 
 ```bash
 # In your CDK project directory
-cdk synth   # Creates preview snapshot (for development)
+cdk synth   # Creates LOCAL snapshot in OS cache
 # OR
-cdk deploy  # Creates registered snapshot (for production)
+cdk deploy  # Creates LOCAL snapshot + publishes to Chaim SaaS
 ```
 
-The CLI reads snapshot files from `cdk.out/chaim/snapshots/` produced by [chaim-cdk](https://github.com/chaim-tools/chaim-cdk).
+The CLI reads snapshot files from the **OS cache** (`~/.chaim/cache/snapshots/`) produced by [chaim-cdk](https://github.com/chaim-tools/chaim-cdk). You can run the CLI from **any directory**.
 
 ## Quick Start
 
 ```bash
 # 1. In your CDK project, create a snapshot
+cd my-cdk-project
 cdk synth
 
-# 2. Generate SDK
-chaim generate --package com.example.model
+# 2. Generate SDK (run from your Java application directory)
+cd my-java-app
+chaim generate --package com.mycompany.myapp.model
 
 # That's it! Your Java SDK is ready in ./src/main/java/
 ```
@@ -35,51 +37,44 @@ npm install -g @chaim-tools/chaim
 
 ## System Requirements
 
-Run `chaim init` to verify and install all prerequisites:
+Run `chaim doctor` to verify your environment:
 
 ```bash
-chaim init
+chaim doctor
 ```
 
 **Required:**
 - Node.js v18+
-- Java 11+
+- Java 11+ (for code generation)
 - AWS CLI (configured)
-- CDK CLI
 
 ## CLI Commands
 
 ### Generate SDK
 
 ```bash
-# Generate all entities (auto mode)
-chaim generate --package com.example.model
+# Generate all entities from snapshots
+chaim generate --package com.mycompany.myapp.model
 
-# Use preview snapshot explicitly
-chaim generate --mode preview --package com.example.model
+# Filter by CDK stack name
+chaim generate --package com.mycompany.myapp.model --stack MyStack
 
-# Filter by account/region/stack
-chaim generate --account 123456789012 --region us-east-1 --stack MyStack --package com.example.model
+# Custom output directory
+chaim generate --package com.mycompany.myapp.model --output ./generated
 
-# Filter by entity or table
-chaim generate --entity User --package com.example.model
+# Skip environment checks
+chaim generate --package com.mycompany.myapp.model --skip-checks
 ```
 
 **Options:**
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--package` | Java package name (required) | - |
-| `--output` | Output directory | ./src/main/java |
-| `--snapshot-dir` | Snapshot directory path | cdk.out/chaim/snapshots |
-| `--mode` | Snapshot mode: `preview`, `registered`, `auto` | auto |
-| `--account` | Filter by AWS account ID | - |
-| `--region` | Filter by AWS region | - |
-| `--stack` | Filter by CDK stack name | - |
-| `--datastore` | Filter by data store type (dynamodb, aurora, s3) | - |
-| `--table` | Filter by table/resource name | - |
-| `--entity` | Filter by entity name | - |
-| `--skip-checks` | Skip environment checks | false |
+| Option | Required | Description | Default |
+|--------|----------|-------------|---------|
+| `--package` | **Yes** | Java package name (e.g., `com.mycompany.myapp.model`) | - |
+| `--output` | No | Output directory | ./src/main/java |
+| `--stack` | No | Filter by CDK stack name | - |
+| `--snapshot-dir` | No | Override snapshot directory | OS cache |
+| `--skip-checks` | No | Skip environment checks | false |
 
 ### Other Commands
 
@@ -94,25 +89,24 @@ chaim validate ./schemas/user.bprint
 chaim doctor
 ```
 
-## Snapshot Structure
+## Snapshot Locations
 
-Snapshots use a hierarchical directory structure:
+Snapshots are stored in a **global OS cache**, allowing the CLI to work from any directory.
 
+**Default locations:**
+- macOS/Linux: `~/.chaim/cache/snapshots/`
+- Windows: `%LOCALAPPDATA%/chaim/cache/snapshots/`
+
+**Directory structure:**
 ```
-cdk.out/chaim/snapshots/{mode}/{accountId}/{region}/{stackName}/{dataStoreType}/{resourceId}.json
+~/.chaim/cache/snapshots/
+└── aws/
+    └── {accountId}/
+        └── {region}/
+            └── {stackName}/
+                └── dynamodb/
+                    └── {resourceId}.json
 ```
-
-**Example:**
-```
-preview/123456789012/us-east-1/MyStack/dynamodb/UsersTable__User__a1b2c3d4.json
-```
-
-| Mode | Created By | Use Case |
-|------|------------|----------|
-| Preview | `cdk synth` | Development, rapid iteration |
-| Registered | `cdk deploy` | Production, audit trail |
-
-**Auto mode** (default): Uses registered if available, otherwise preview.
 
 ## Error: No Snapshot Found
 
@@ -122,36 +116,47 @@ If you see "No snapshot found", **you need to create a snapshot first**. Snapsho
 # Navigate to your CDK project
 cd my-cdk-project
 
-# Create a snapshot (choose one)
-cdk synth    # For development (preview snapshot)
-cdk deploy   # For production (registered snapshot)
+# Create a snapshot
+cdk synth    # For development
+# OR
+cdk deploy   # For production
 
-# Then generate
-chaim generate --package com.example.model
+# Then generate (from any directory)
+chaim generate --package com.mycompany.myapp.model
 ```
 
 **Common causes:**
 - Haven't run `cdk synth` or `cdk deploy` yet
-- Running CLI from wrong directory (run from your CDK project root)
-- Filters (`--stack`, `--account`, `--region`) don't match existing snapshots
+- Filters (`--stack`) don't match existing snapshots
+- Snapshots in non-default location (use `--snapshot-dir`)
 
 **Tip:** The CLI shows existing snapshots that didn't match your filters, helping you adjust.
 
-## Using the Generated SDK
+## Generated Output
+
+```
+src/main/java/com/mycompany/myapp/model/
+├── Users.java              # Entity DTO
+├── config/
+│   └── ChaimConfig.java    # Table configuration
+└── mapper/
+    └── ChaimMapperClient.java  # DynamoDB mapper
+```
+
+### Using the Generated SDK
 
 ```java
 // Create mapper client
 ChaimMapperClient mapper = ChaimConfig.createMapper();
 
 // Save entity
-User user = new User("user-123", "john@example.com", "John Doe");
+User user = new User();
+user.setUserId("user-123");
+user.setEmail("john@example.com");
 mapper.save(user);
 
 // Find by ID
 Optional<User> found = mapper.findById(User.class, "user-123");
-
-// Query by field
-List<User> activeUsers = mapper.findByField(User.class, "isActive", true);
 ```
 
 ## Optional Configuration
@@ -161,11 +166,25 @@ Create `chaim.json` to set defaults:
 ```json
 {
   "defaults": {
-    "package": "com.example.model",
+    "package": "com.mycompany.myapp.model",
     "output": "./src/main/java"
   }
 }
 ```
+
+Then run without arguments:
+```bash
+chaim generate
+```
+
+## Field Type Mappings
+
+| .bprint Type | Java Type |
+|--------------|-----------|
+| `string` | `String` |
+| `number` | `Double` |
+| `boolean` | `Boolean` |
+| `timestamp` | `Instant` |
 
 ## Related Packages
 
@@ -173,6 +192,7 @@ Create `chaim.json` to set defaults:
 |---------|---------|
 | [chaim-cdk](https://github.com/chaim-tools/chaim-cdk) | AWS CDK constructs (creates snapshots) |
 | [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec) | Schema specification |
+| [chaim-client-java](https://github.com/chaim-tools/chaim-client-java) | Java code generation |
 
 ## Getting Help
 

@@ -447,12 +447,13 @@ chaim <command> [options]
 
 | Command | Purpose |
 |---------|---------|
-| `npm run build` | Build CLI and bundle dependencies |
-| `npm run build:cli` | Compile TypeScript to dist/ |
+| `npm run build` | Compile TypeScript to dist/ |
 | `npm test` | Run Vitest test suite |
 | `npm run lint` | Run ESLint |
 | `npm run dev` | Run CLI in development mode (ts-node) |
 | `npm run clean` | Remove dist/ |
+
+> **Note**: Dependencies (`@chaim-tools/client-java`, etc.) are installed from npm, not bundled locally.
 
 ---
 
