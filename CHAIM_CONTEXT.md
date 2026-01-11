@@ -140,21 +140,25 @@ chaim init [options]
 
 ### `chaim generate`
 
-Generates language-specific SDK from LOCAL snapshot files produced by `chaim-cdk`.
+Generates language-specific SDK from LOCAL snapshot files produced by `chaim-cdk`. Defaults to Java if no language is specified.
 
 **Prerequisite**: Run `cdk synth` or `cdk deploy` in your CDK project first.
 
 ```bash
-chaim generate --package <packageName> [options]
+chaim generate --package <packageName> [--language <language>] [options]
 ```
 
 | Option | Type | Required | Description | Default |
 |--------|------|----------|-------------|---------|
-| `--package` | string | **Yes** | Java package name (e.g., `com.mycompany.myapp.model`) | - |
+| `--package` | string | **Yes** | Package name (e.g., `com.mycompany.myapp.model` for Java) | - |
+| `-l, --language` | string | No | Target language for code generation | java |
 | `--output` | string | No | Output directory | ./src/main/java |
 | `--stack` | string | No | Filter by CDK stack name | - |
 | `--snapshot-dir` | string | No | Override snapshot directory (default: OS cache) | - |
 | `--skip-checks` | boolean | No | Skip environment validation | false |
+
+**Supported Languages:**
+- `java` (default) — generates Java DTOs, ChaimConfig, and ChaimMapperClient
 
 **Snapshot Selection:**
 - The CLI reads LOCAL snapshots from the OS cache
@@ -168,8 +172,11 @@ The CLI discovers and generates from **all matching snapshots**. One entity clas
 
 **Examples:**
 ```bash
-# Generate all entities into a flat package structure
+# Generate all entities into a flat package structure (defaults to Java)
 chaim generate --package com.mycompany.myapp.model
+
+# Explicitly specify language
+chaim generate --package com.mycompany.myapp.model --language java
 
 # Filter by stack name
 chaim generate --package com.mycompany.myapp.model --stack MyStack

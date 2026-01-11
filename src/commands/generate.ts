@@ -15,12 +15,18 @@ import {
   StackContext,
   TableMetadata,
 } from '../types';
+import {
+  SupportedLanguage,
+  SUPPORTED_LANGUAGES,
+  DEFAULT_LANGUAGE,
+} from '../config/types';
 import * as path from 'path';
 
 interface GenerateOptions {
   stack?: string;
   package: string;
   output: string;
+  language?: string;
   snapshotDir?: string;
   skipChecks?: boolean;
 }
@@ -33,6 +39,9 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
       console.error(chalk.gray('  Example: chaim generate --package com.mycompany.myapp.model'));
       process.exit(1);
     }
+
+    // Resolve and validate language (defaults to Java)
+    const language = resolveLanguage(options.language);
 
     // Pre-generation checks (unless skipped)
     if (!options.skipChecks) {
@@ -59,7 +68,7 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
     }
 
     // Generate from all matching snapshots
-    await generateFromSnapshots(resolvedSnapshots, options);
+    await generateFromSnapshots(resolvedSnapshots, options, language);
 
   } catch (error) {
     console.error(chalk.red('✗ Generation failed:'), error instanceof Error ? error.message : error);
@@ -161,9 +170,10 @@ async function runPreGenerationChecks(): Promise<void> {
  */
 async function generateFromSnapshots(
   snapshots: ResolvedSnapshot[],
-  options: GenerateOptions
+  options: GenerateOptions,
+  language: SupportedLanguage
 ): Promise<void> {
-  console.log(chalk.blue(`\nGenerating from ${snapshots.length} LOCAL snapshot(s)`));
+  console.log(chalk.blue(`\nGenerating ${language.toUpperCase()} code from ${snapshots.length} LOCAL snapshot(s)`));
   console.log('');
 
   // Group snapshots by account/region/stack for organized output
@@ -246,6 +256,7 @@ async function generateFromSnapshots(
       console.log(chalk.yellow(`Generated ${successCount} entity/entities, ${failCount} failed`));
     }
 
+    console.log(chalk.green('  Language:'), language);
     console.log(chalk.green('  Output directory:'), path.resolve(options.output));
     console.log(chalk.green('  Package:'), options.package);
 
@@ -256,6 +267,24 @@ async function generateFromSnapshots(
     spinner.fail('Failed to generate SDK');
     throw error;
   }
+}
+
+/**
+ * Resolve and validate the target language for code generation.
+ * 
+ * Priority: CLI flag > default (Java)
+ * Currently only Java is supported. Returns error for unsupported languages.
+ */
+function resolveLanguage(cliLanguage?: string): SupportedLanguage {
+  const language = cliLanguage || DEFAULT_LANGUAGE;
+  
+  if (!SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+    console.error(chalk.red(`Error: Language '${language}' is not yet supported.`));
+    console.error(chalk.gray(`Currently supported: ${SUPPORTED_LANGUAGES.join(', ')}`));
+    process.exit(1);
+  }
+  
+  return language as SupportedLanguage;
 }
 
 /**

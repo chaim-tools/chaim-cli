@@ -16,6 +16,22 @@
  */
 
 /**
+ * Supported languages for code generation.
+ * Extend this union type when adding new language support.
+ */
+export type SupportedLanguage = 'java'; // extend later: | 'typescript' | 'python'
+
+/**
+ * List of currently supported languages for code generation.
+ */
+export const SUPPORTED_LANGUAGES: SupportedLanguage[] = ['java'];
+
+/**
+ * Default language for code generation when not specified.
+ */
+export const DEFAULT_LANGUAGE: SupportedLanguage = 'java';
+
+/**
  * Authentication profile stored in global config
  */
 export interface AuthProfile {
@@ -55,6 +71,9 @@ export interface GlobalChaimConfig {
   /** Default output directory for generated code */
   defaultOutput?: string;
 
+  /** Default language for code generation (java, typescript, python) */
+  defaultLanguage?: SupportedLanguage;
+
   /** Telemetry opt-out flag */
   telemetryOptOut?: boolean;
 }
@@ -85,6 +104,9 @@ export interface RepoChaimConfig {
 
   /** Output directory for generated code */
   output?: string;
+
+  /** Language for code generation (overrides global default) */
+  language?: SupportedLanguage;
 
   /** Specific tables to include (if not all) */
   tables?: string[];
@@ -122,6 +144,8 @@ export interface ResolvedChaimConfig {
   stackName?: string;
 
   // === Code generation ===
+  /** Language for code generation */
+  language: SupportedLanguage;
   /** Java package name */
   javaPackage?: string;
   /** Output directory */
@@ -136,6 +160,7 @@ export interface ResolvedChaimConfig {
 export const CONFIG_DEFAULTS: Partial<ResolvedChaimConfig> = {
   region: 'us-east-1',
   output: './src/main/java',
+  language: DEFAULT_LANGUAGE,
   isAuthenticated: false,
 };
 

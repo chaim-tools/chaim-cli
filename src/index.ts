@@ -44,8 +44,9 @@ program
 
 program
   .command('generate')
-  .description('Generate Java SDK from LOCAL snapshot (reads from OS cache)')
-  .requiredOption('--package <packageName>', 'Java package name (e.g., com.mycompany.myapp.model)')
+  .description('Generate SDK code from LOCAL snapshot (reads from OS cache)')
+  .requiredOption('--package <packageName>', 'Package name (e.g., com.mycompany.myapp.model for Java)')
+  .option('-l, --language <language>', 'Target language for code generation (default: java)')
   .option('--output <outputDir>', 'Output directory', './src/main/java')
   .option('--stack <stackName>', 'Filter by CDK stack name (optional)')
   .option('--snapshot-dir <path>', 'Override snapshot directory (default: OS cache)')
@@ -102,7 +103,7 @@ if (process.argv.length <= 2) {
   console.log('');
   console.log('Commands:');
   console.log('  init      - Verify and install all prerequisites');
-  console.log('  generate  - Generate Java SDK from CDK snapshot');
+  console.log('  generate  - Generate SDK code from CDK snapshot (default: java)');
   console.log('  validate  - Validate a .bprint schema file');
   console.log('  doctor    - Check system environment and dependencies');
   console.log('');

@@ -1,6 +1,6 @@
 # chaim-cli
 
-A **schema-driven code generation tool** that transforms `.bprint` schema snapshots into complete Java SDKs with DynamoDB Mapper clients, DTOs, and configuration management.
+A **schema-driven code generation tool** that transforms `.bprint` schema snapshots into complete SDKs with DynamoDB Mapper clients, DTOs, and configuration management. Currently supports **Java** (default), with more languages coming soon.
 
 ## Prerequisite
 
@@ -53,8 +53,11 @@ chaim doctor
 ### Generate SDK
 
 ```bash
-# Generate all entities from snapshots
+# Generate all entities from snapshots (defaults to Java)
 chaim generate --package com.mycompany.myapp.model
+
+# Explicitly specify language
+chaim generate --package com.mycompany.myapp.model --language java
 
 # Filter by CDK stack name
 chaim generate --package com.mycompany.myapp.model --stack MyStack
@@ -70,11 +73,15 @@ chaim generate --package com.mycompany.myapp.model --skip-checks
 
 | Option | Required | Description | Default |
 |--------|----------|-------------|---------|
-| `--package` | **Yes** | Java package name (e.g., `com.mycompany.myapp.model`) | - |
+| `--package` | **Yes** | Package name (e.g., `com.mycompany.myapp.model` for Java) | - |
+| `-l, --language` | No | Target language for code generation | java |
 | `--output` | No | Output directory | ./src/main/java |
 | `--stack` | No | Filter by CDK stack name | - |
 | `--snapshot-dir` | No | Override snapshot directory | OS cache |
 | `--skip-checks` | No | Skip environment checks | false |
+
+**Supported Languages:**
+- `java` (default) — generates Java DTOs, ChaimConfig, and ChaimMapperClient
 
 ### Other Commands
 
