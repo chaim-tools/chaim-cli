@@ -184,6 +184,52 @@ function getTableIdentity(snapshot: ResolvedSnapshot): string {
 }
 
 /**
+ * Validate that all entities bound to the same table have matching PK/SK field names.
+ * This is required because DynamoDB tables have a single key schema that all items must use.
+ * 
+ * @throws Error if entities have mismatched key definitions
+ */
+function validateTableKeyConsistency(tableSnapshots: ResolvedSnapshot[], tableName: string): void {
+  if (tableSnapshots.length <= 1) {
+    return; // Single entity, no consistency check needed
+  }
+
+  const first = tableSnapshots[0];
+  const firstPk = first.snapshot.schema?.entity?.primaryKey?.partitionKey;
+  const firstSk = first.snapshot.schema?.entity?.primaryKey?.sortKey;
+  const firstEntity = first.entityName;
+
+  for (let i = 1; i < tableSnapshots.length; i++) {
+    const snap = tableSnapshots[i];
+    const pk = snap.snapshot.schema?.entity?.primaryKey?.partitionKey;
+    const sk = snap.snapshot.schema?.entity?.primaryKey?.sortKey;
+    const entity = snap.entityName;
+
+    // Check partition key matches
+    if (pk !== firstPk) {
+      throw new Error(
+        `Entity '${entity}' has incompatible partition key for table '${tableName}'.\n` +
+        `  Expected: partitionKey='${firstPk}' (from entity '${firstEntity}')\n` +
+        `  Found:    partitionKey='${pk}'\n\n` +
+        `All entities bound to the same table must have matching PK/SK field names.`
+      );
+    }
+
+    // Check sort key matches (both defined or both undefined)
+    if (sk !== firstSk) {
+      const expectedSk = firstSk || '(none)';
+      const foundSk = sk || '(none)';
+      throw new Error(
+        `Entity '${entity}' has incompatible sort key for table '${tableName}'.\n` +
+        `  Expected: sortKey='${expectedSk}' (from entity '${firstEntity}')\n` +
+        `  Found:    sortKey='${foundSk}'\n\n` +
+        `All entities bound to the same table must have matching PK/SK field names.`
+      );
+    }
+  }
+}
+
+/**
  * Generate SDK from multiple resolved snapshots.
  * Groups entities by physical table and generates shared infrastructure once per table.
  */
@@ -204,6 +250,12 @@ async function generateFromSnapshots(
       byTable.set(tableId, []);
     }
     byTable.get(tableId)!.push(snap);
+  }
+
+  // Validate key consistency for multi-entity tables BEFORE generation
+  for (const [tableId, tableSnapshots] of byTable) {
+    const tableName = tableSnapshots[0].snapshot.dataStore.tableName || tableSnapshots[0].snapshot.dataStore.name;
+    validateTableKeyConsistency(tableSnapshots, tableName);
   }
 
   const results: { tableId: string; entities: string[]; success: boolean; error?: string }[] = [];
