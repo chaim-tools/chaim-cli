@@ -170,17 +170,22 @@ async function runPreGenerationChecks(): Promise<void> {
  * Prefers tableArn (globally unique), falls back to composite key.
  */
 function getTableIdentity(snapshot: ResolvedSnapshot): string {
-  const ds = snapshot.snapshot.dataStore;
+  const snap = snapshot.snapshot;
+  
+  // Support both v3.0 (resource) and legacy (dataStore) structure
+  const resource = (snap as any).resource || (snap as any).dataStore;
+  const accountId = (snap as any).providerIdentity?.accountId || (snap as any).accountId;
+  const region = (snap as any).providerIdentity?.region || (snap as any).region;
   
   // Prefer ARN if it's resolved (not a CDK token)
-  const tableArn = ds.tableArn || ds.arn;
-  if (tableArn && !tableArn.includes('${')) {
-    return tableArn;
+  const resourceId = resource.id || resource.tableArn || resource.arn;
+  if (resourceId && !resourceId.includes('${')) {
+    return resourceId;
   }
   
-  // Fallback to composite key: {accountId}:{region}:{tableName}
-  const tableName = ds.tableName || ds.name;
-  return `${snapshot.accountId}:${snapshot.region}:${tableName}`;
+  // Fallback to composite key: {accountId}:{region}:{name}
+  const resourceName = resource.name || resource.tableName;
+  return `${accountId}:${region}:${resourceName}`;
 }
 
 /**
@@ -195,14 +200,26 @@ function validateTableKeyConsistency(tableSnapshots: ResolvedSnapshot[], tableNa
   }
 
   const first = tableSnapshots[0];
-  const firstPk = first.snapshot.schema?.entity?.primaryKey?.partitionKey;
-  const firstSk = first.snapshot.schema?.entity?.primaryKey?.sortKey;
+  
+  // Check if first snapshot has valid schema (should not be null for UPSERT)
+  if (!first.snapshot.schema) {
+    throw new Error(`Cannot validate table key consistency: first snapshot has null schema (DELETE action)`);
+  }
+  
+  const firstPk = first.snapshot.schema.primaryKey?.partitionKey;
+  const firstSk = first.snapshot.schema.primaryKey?.sortKey;
   const firstEntity = first.entityName;
 
   for (let i = 1; i < tableSnapshots.length; i++) {
     const snap = tableSnapshots[i];
-    const pk = snap.snapshot.schema?.entity?.primaryKey?.partitionKey;
-    const sk = snap.snapshot.schema?.entity?.primaryKey?.sortKey;
+    
+    // Skip DELETE snapshots (null schema)
+    if (!snap.snapshot.schema) {
+      continue;
+    }
+    
+    const pk = snap.snapshot.schema.primaryKey?.partitionKey;
+    const sk = snap.snapshot.schema.primaryKey?.sortKey;
     const entity = snap.entityName;
 
     // Check partition key matches
@@ -241,10 +258,29 @@ async function generateFromSnapshots(
   console.log(chalk.blue(`\nGenerating ${language.toUpperCase()} code from ${snapshots.length} LOCAL snapshot(s)`));
   console.log('');
 
+  // Filter out DELETE snapshots (those with null schema or action === 'DELETE')
+  // Code generation only works with UPSERT snapshots that have valid schemas
+  const upsertSnapshots = snapshots.filter(snap => {
+    const action = snap.snapshot.action || 'UPSERT';  // Default to UPSERT for backward compatibility
+    return action === 'UPSERT' && snap.snapshot.schema !== null;
+  });
+
+  if (upsertSnapshots.length === 0) {
+    console.error(chalk.yellow('\n⚠ No UPSERT snapshots found for code generation'));
+    console.error(chalk.gray('All snapshots appear to be DELETE actions or have null schemas.'));
+    console.error(chalk.gray('Code generation requires valid entity schemas.'));
+    process.exit(1);
+  }
+
+  if (upsertSnapshots.length < snapshots.length) {
+    const skippedCount = snapshots.length - upsertSnapshots.length;
+    console.log(chalk.gray(`\nSkipping ${skippedCount} DELETE snapshot(s) - code generation only processes UPSERT actions\n`));
+  }
+
   // Group snapshots by table identity (ARN or composite key)
   // This ensures multiple entities for the same physical table are generated together
   const byTable = new Map<string, ResolvedSnapshot[]>();
-  for (const snap of snapshots) {
+  for (const snap of upsertSnapshots) {
     const tableId = getTableIdentity(snap);
     if (!byTable.has(tableId)) {
       byTable.set(tableId, []);
@@ -254,7 +290,9 @@ async function generateFromSnapshots(
 
   // Validate key consistency for multi-entity tables BEFORE generation
   for (const [tableId, tableSnapshots] of byTable) {
-    const tableName = tableSnapshots[0].snapshot.dataStore.tableName || tableSnapshots[0].snapshot.dataStore.name;
+    const firstSnap = tableSnapshots[0].snapshot;
+    const resource = (firstSnap as any).resource || (firstSnap as any).dataStore;
+    const tableName = resource.name || resource.tableName;
     validateTableKeyConsistency(tableSnapshots, tableName);
   }
 
@@ -264,18 +302,23 @@ async function generateFromSnapshots(
   try {
     for (const [tableId, tableSnapshots] of byTable) {
       const firstSnapshot = tableSnapshots[0];
-      const tableName = firstSnapshot.snapshot.dataStore.tableName || firstSnapshot.snapshot.dataStore.name;
+      const resource = (firstSnapshot.snapshot as any).resource || (firstSnapshot.snapshot as any).dataStore;
+      const tableName = resource.name || resource.tableName;
       spinner.text = `Generating for table ${tableName} (${tableSnapshots.length} entities)...`;
 
-      // Collect all schemas for this table
-      const schemas = tableSnapshots.map(s => s.snapshot.schema);
+      // Collect all schemas for this table (filter out any nulls, though they should already be filtered)
+      const schemas = tableSnapshots
+        .map(s => s.snapshot.schema)
+        .filter((schema): schema is NonNullable<typeof schema> => schema !== null);
+      
+      if (schemas.length === 0) {
+        throw new Error(`No valid schemas found for table ${tableName} (all are DELETE actions)`);
+      }
+      
       const entityNames = tableSnapshots.map(s => s.entityName);
       
       // Create table metadata from the first snapshot (all snapshots share the same table)
-      const tableMetadata = createTableMetadataFromSnapshot(
-        firstSnapshot.snapshot.dataStore, 
-        firstSnapshot.snapshot.context
-      );
+      const tableMetadata = createTableMetadataFromSnapshot(firstSnapshot.snapshot);
 
       try {
         const javaGenerator = new JavaGenerator();
@@ -313,7 +356,8 @@ async function generateFromSnapshots(
     for (const result of results) {
       const tableSnapshots = byTable.get(result.tableId)!;
       const firstSnap = tableSnapshots[0];
-      const tableName = firstSnap.snapshot.dataStore.tableName || firstSnap.snapshot.dataStore.name;
+      const resource = (firstSnap.snapshot as any).resource || (firstSnap.snapshot as any).dataStore;
+      const tableName = resource.name || resource.tableName;
       
       console.log(chalk.cyan(`  Table: ${tableName}`));
       console.log(chalk.gray(`    Identity: ${result.tableId}`));
@@ -395,21 +439,19 @@ function resolveRegion(snapshotRegion: string | undefined): string {
  * 
  * Handles 'unknown' values from CDK tokens by resolving from environment.
  */
-function createTableMetadataFromSnapshot(dataStore: DynamoDBMetadata, context: StackContext): TableMetadata {
-  // Resolve region - prefer context, fall back to dataStore, resolve 'unknown'
-  const contextRegion = resolveRegion(context?.region);
-  const dataStoreRegion = resolveRegion(dataStore.region);
-  const resolvedRegion = (contextRegion !== 'us-east-1' || !dataStore.region) 
-    ? contextRegion 
-    : dataStoreRegion;
+function createTableMetadataFromSnapshot(snapshot: any): TableMetadata {
+  // Support both v3.0 (resource) and legacy (dataStore) structure
+  const resource = snapshot.resource || snapshot.dataStore;
+  const providerIdentity = snapshot.providerIdentity;
+  const region = providerIdentity?.region || snapshot.region || resource.region;
 
   return {
-    tableName: dataStore.tableName || dataStore.name,
-    tableArn: dataStore.tableArn || dataStore.arn,
-    region: resolvedRegion,
-    partitionKey: dataStore.partitionKey,
-    sortKey: dataStore.sortKey,
-    globalSecondaryIndexes: dataStore.globalSecondaryIndexes,
-    localSecondaryIndexes: dataStore.localSecondaryIndexes,
+    tableName: resource.name || resource.tableName,
+    tableArn: resource.id || resource.tableArn || resource.arn,
+    region: resolveRegion(region),
+    partitionKey: resource.partitionKey,
+    sortKey: resource.sortKey,
+    globalSecondaryIndexes: resource.globalSecondaryIndexes,
+    localSecondaryIndexes: resource.localSecondaryIndexes,
   };
 }

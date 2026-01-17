@@ -5,6 +5,7 @@ import { generateCommand } from './commands/generate';
 import { validateCommand } from './commands/validate';
 import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
+import { cleanCommand } from './commands/clean';
 import chalk from 'chalk';
 
 /**
@@ -72,6 +73,16 @@ program
   .option('--region <region>', 'AWS region for CDK bootstrap', 'us-east-1')
   .action(initCommand);
 
+program
+  .command('clean')
+  .description('Clean snapshot cache (prune old or stack-specific snapshots)')
+  .option('--stack <stackName>', 'Clean snapshots for specific stack')
+  .option('--all', 'Clean all snapshots')
+  .option('--older-than <days>', 'Clean snapshots older than N days', parseInt)
+  .option('--dry-run', 'Show what would be deleted without deleting')
+  .option('--verbose', 'Show detailed output')
+  .action(cleanCommand);
+
 /**
  * ==========================
  * Planned Command Registration
@@ -106,6 +117,7 @@ if (process.argv.length <= 2) {
   console.log('  generate  - Generate SDK code from CDK snapshot (default: java)');
   console.log('  validate  - Validate a .bprint schema file');
   console.log('  doctor    - Check system environment and dependencies');
+  console.log('  clean     - Clean snapshot cache (remove old or stale snapshots)');
   console.log('');
   console.log('Use \'chaim <command> --help\' for more information');
   process.exit(0);

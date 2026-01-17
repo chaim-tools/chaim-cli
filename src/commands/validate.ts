@@ -19,9 +19,10 @@ export async function validateCommand(schemaFile: string): Promise<void> {
     const validatedSchema = validateSchema(schema);
     
     console.log(chalk.green('✓ Schema is valid'));
-    console.log(chalk.green('  Entity:'), validatedSchema.entity.primaryKey.partitionKey);
+    console.log(chalk.green('  Entity:'), validatedSchema.entityName);
+    console.log(chalk.green('  Partition Key:'), validatedSchema.primaryKey.partitionKey);
     console.log(chalk.green('  Version:'), validatedSchema.schemaVersion);
-    console.log(chalk.green('  Fields:'), validatedSchema.entity.fields.length);
+    console.log(chalk.green('  Fields:'), validatedSchema.fields.length);
     
   } catch (error) {
     console.error(chalk.red('✗ Schema validation failed:'), error instanceof Error ? error.message : error);

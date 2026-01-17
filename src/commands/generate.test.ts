@@ -69,9 +69,18 @@ describe('generateCommand', () => {
   // snapshot-discovery.test.ts and the API validation tests below.
   describe.skip('snapshot-based generation', () => {
     const mockSnapshot = {
-      snapshotMode: 'PREVIEW',
+      action: 'UPSERT',
       appId: 'test-app',
-      schema: { entity: { name: 'User', primaryKey: { partitionKey: 'id' } } },
+      schema: { 
+        schemaVersion: 1.1,
+        entityName: 'User', 
+        description: 'User entity',
+        primaryKey: { partitionKey: 'id' },
+        fields: [
+          { name: 'id', type: 'string' as const, required: true },
+          { name: 'email', type: 'string' as const, required: true }
+        ]
+      },
       dataStore: {
         type: 'dynamodb',
         tableName: 'Users',

@@ -310,14 +310,14 @@ When generating code, the CLI resolves region values using this priority:
 
 This ensures generated `ChaimConfig.java` has a valid region even when CDK synthesizes with environment-agnostic stacks that produce `unknown` values.
 
-### Package Name vs Schema Namespace
+### Package Name vs Schema Entity Name
 
 The CLI separates two distinct concepts:
 
 | Concept | Source | Purpose | Example |
 |---------|--------|---------|---------|
 | **Java Package** | `--package` flag | Where generated files live in your codebase | `com.mycompany.myapp.model` |
-| **Entity Name** | `schema.namespace` | Domain/entity identifier in the schema | `user`, `order`, `product` |
+| **Entity Name** | `schema.entityName` | Domain/entity identifier in the schema | `User`, `Order`, `Product` |
 
 **Flat Structure:** All DTOs are generated into the single package specified by `--package`:
 
@@ -327,8 +327,8 @@ chaim generate --package com.mycompany.myapp.model
 
 ```
 src/main/java/com/mycompany/myapp/model/
-├── User.java           # from schema namespace: user
-├── Order.java          # from schema namespace: order  
+├── User.java           # from schema entityName: User
+├── Order.java          # from schema entityName: Order  
 ├── ChaimConfig.java
 └── ChaimMapperClient.java
 ```
@@ -378,13 +378,18 @@ The CLI extracts these fields from DynamoDB snapshots for code generation:
 
 ### Schema Data (schema)
 
+Schema v1.1 - flattened structure:
+
 | Field | Description | Used In |
 |-------|-------------|---------|
-| `schemaVersion` | Schema version | `chaimVersion` constant |
-| `namespace` | Java package hint | Entity derivation |
-| `entity.name` | Entity name | Class name |
-| `entity.fields` | Field definitions | DTO properties |
-| `entity.primaryKey` | Key configuration | Repository methods |
+| `schemaVersion` | Schema version (number: 1.1) | Version tracking |
+| `entityName` | Entity name | Class name |
+| `description` | Entity description | Documentation |
+| `primaryKey` | Key configuration | Repository methods |
+| `primaryKey.partitionKey` | Partition key field name | Key mapping |
+| `primaryKey.sortKey` | Sort key field name (optional) | Key mapping |
+| `fields` | Field definitions | DTO properties |
+| `annotations` | Schema annotations (optional) | Metadata |
 
 ---
 

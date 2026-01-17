@@ -9,8 +9,8 @@ export {
   // Schema types
   PrimaryKey,
   SchemaField,
-  SchemaEntity,
   SchemaData,
+  Annotations,
   
   // Data store metadata
   GSIMetadata,

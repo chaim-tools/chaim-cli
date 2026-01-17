@@ -39,19 +39,15 @@ describe('validateCommand', () => {
 
   it('should validate a valid schema file', async () => {
     const mockSchema = {
-      schemaVersion: 'v1',
-      entity: {
-        primaryKey: { partitionKey: 'id' },
-        fields: [{ name: 'id', type: 'string', required: true }]
-      }
+      schemaVersion: 1.0,
+      entityName: 'User',
+      description: 'User entity',
+      primaryKey: { partitionKey: 'id' },
+      fields: [{ name: 'id', type: 'string', required: true }]
     };
 
     const mockValidatedSchema = {
-      ...mockSchema,
-      entity: {
-        ...mockSchema.entity,
-        primaryKey: { partitionKey: 'id' }
-      }
+      ...mockSchema
     };
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -119,22 +115,18 @@ describe('validateCommand', () => {
 
   it('should display validation success information', async () => {
     const mockSchema = {
-      schemaVersion: 'v1',
-      entity: {
-        primaryKey: { partitionKey: 'userId' },
-        fields: [
-          { name: 'userId', type: 'string', required: true },
-          { name: 'email', type: 'string', required: true }
-        ]
-      }
+      schemaVersion: 1.0,
+      entityName: 'User',
+      description: 'User entity',
+      primaryKey: { partitionKey: 'userId' },
+      fields: [
+        { name: 'userId', type: 'string', required: true },
+        { name: 'email', type: 'string', required: true }
+      ]
     };
 
     const mockValidatedSchema = {
-      ...mockSchema,
-      entity: {
-        ...mockSchema.entity,
-        primaryKey: { partitionKey: 'userId' }
-      }
+      ...mockSchema
     };
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -147,8 +139,9 @@ describe('validateCommand', () => {
     await validateCommand('/path/to/schema.bprint');
 
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Schema is valid'));
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Entity:'), 'userId');
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Version:'), 'v1');
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Entity:'), 'User');
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Partition Key:'), 'userId');
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Version:'), 1.0);
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Fields:'), 2);
   });
 });

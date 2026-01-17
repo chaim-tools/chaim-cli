@@ -31,22 +31,25 @@ export interface SchemaField {
 }
 
 /**
- * Entity definition within the schema.
+ * Annotations for schema metadata.
  */
-export interface SchemaEntity {
-  name?: string;
-  primaryKey: PrimaryKey;
-  fields: SchemaField[];
+export interface Annotations {
+  pii?: boolean;
+  retention?: string;
+  encryption?: string;
 }
 
 /**
  * Complete schema data from a .bprint file.
+ * Schema v1.1 - flattened structure (no nested entity object).
  */
 export interface SchemaData {
-  schemaVersion: string;
-  namespace: string;
+  schemaVersion: number;
+  entityName: string;
   description: string;
-  entity: SchemaEntity;
+  primaryKey: PrimaryKey;
+  fields: SchemaField[];
+  annotations?: Annotations;
 }
 
 // ============================================================
@@ -196,6 +199,15 @@ export interface StableIdentity {
  * Written at synth-time (runs for both `cdk synth` and `cdk deploy`).
  */
 export interface LocalSnapshotPayload {
+  /**
+   * Action type for this snapshot.
+   * - UPSERT: Create or update entity metadata (default)
+   * - DELETE: Mark entity as deleted
+   * 
+   * If omitted, defaults to 'UPSERT' for backward compatibility.
+   */
+  action?: 'UPSERT' | 'DELETE';
+
   /** Cloud provider */
   provider: 'aws';
 
@@ -223,8 +235,8 @@ export interface LocalSnapshotPayload {
   /** Application ID from ChaimBinder props */
   appId: string;
 
-  /** Validated .bprint schema data */
-  schema: SchemaData;
+  /** Validated .bprint schema data (null for DELETE actions) */
+  schema: SchemaData | null;
 
   /** Data store metadata (DynamoDB, Aurora, etc.) */
   dataStore: DataStoreMetadata;
