@@ -47,7 +47,7 @@
   "homepage": "https://github.com/chaim-tools/chaim-cli#readme",
   "dependencies": {
     "@aws-sdk/client-sts": "^3.883.0",
-    "@chaim-tools/chaim-bprint-spec": "workspace:^0.2.0",
+    "@chaim-tools/chaim-bprint-spec": "workspace:*",
     "@chaim-tools/client-java": "workspace:^0.1.0",
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
