@@ -1,6 +1,6 @@
 {
   "name": "@chaim-tools/chaim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Schema-driven code generation tool for DynamoDB - Pure TypeScript CLI",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
