@@ -29,6 +29,14 @@ export interface SchemaField {
   default?: string | number | boolean;
   enum?: string[];
   description?: string;
+  constraints?: {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    min?: number;
+    max?: number;
+  };
+  annotations?: Record<string, unknown>;
 }
 
 /**
