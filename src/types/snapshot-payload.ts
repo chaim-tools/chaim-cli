@@ -24,7 +24,7 @@ export interface PrimaryKey {
 export interface SchemaField {
   name: string;
   nameOverride?: string;
-  type: 'string' | 'number' | 'boolean' | 'timestamp';
+  type: 'string' | 'number' | 'boolean' | 'timestamp' | 'list' | 'map' | 'stringSet' | 'numberSet';
   required?: boolean;
   default?: string | number | boolean;
   enum?: string[];
@@ -37,6 +37,11 @@ export interface SchemaField {
     max?: number;
   };
   annotations?: Record<string, unknown>;
+  items?: {
+    type: 'string' | 'number' | 'boolean' | 'timestamp' | 'map';
+    fields?: { name: string; type: string }[];
+  };
+  fields?: { name: string; type: string }[];
 }
 
 /**
