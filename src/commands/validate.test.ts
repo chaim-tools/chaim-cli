@@ -144,4 +144,115 @@ describe('validateCommand', () => {
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Version:'), 1.0);
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Fields:'), 2);
   });
+
+  it('should display field mapping table', async () => {
+    const mockSchema = {
+      schemaVersion: 1.0,
+      entityName: 'User',
+      description: 'User entity',
+      primaryKey: { partitionKey: 'userId' },
+      fields: [
+        { name: 'userId', type: 'string', required: true },
+        { name: 'email', type: 'string', required: true }
+      ]
+    };
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchema));
+    vi.mocked(path.resolve).mockReturnValue('/path/to/schema.bprint');
+    
+    const { validateSchema } = await import('@chaim-tools/chaim-bprint-spec');
+    vi.mocked(validateSchema).mockReturnValue({ ...mockSchema });
+
+    await validateCommand('/path/to/schema.bprint');
+
+    // Should show field mapping table header
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Field mappings'));
+    // Should show no collision message
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('No collisions detected'));
+  });
+
+  it('should warn about auto-conversions for hyphenated names', async () => {
+    const mockSchema = {
+      schemaVersion: 1.1,
+      entityName: 'Order',
+      description: 'Order entity',
+      primaryKey: { partitionKey: 'order-id' },
+      fields: [
+        { name: 'order-id', type: 'string', required: true },
+        { name: 'order-date', type: 'timestamp', required: true },
+        { name: 'customerId', type: 'string', required: true }
+      ]
+    };
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchema));
+    vi.mocked(path.resolve).mockReturnValue('/path/to/schema.bprint');
+    
+    const { validateSchema } = await import('@chaim-tools/chaim-bprint-spec');
+    vi.mocked(validateSchema).mockReturnValue({ ...mockSchema });
+
+    await validateCommand('/path/to/schema.bprint');
+
+    // Should warn about auto-conversions
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('auto-converted')
+    );
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('should detect and report field name collisions', async () => {
+    const mockSchema = {
+      schemaVersion: 1.1,
+      entityName: 'Order',
+      description: 'Order entity',
+      primaryKey: { partitionKey: 'orderId' },
+      fields: [
+        { name: 'orderId', type: 'string', required: true },
+        { name: 'order-date', type: 'timestamp', required: true },
+        { name: 'orderDate', type: 'string', required: true }
+      ]
+    };
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchema));
+    vi.mocked(path.resolve).mockReturnValue('/path/to/schema.bprint');
+    
+    const { validateSchema } = await import('@chaim-tools/chaim-bprint-spec');
+    vi.mocked(validateSchema).mockReturnValue({ ...mockSchema });
+
+    await validateCommand('/path/to/schema.bprint');
+
+    // Should report collision and exit
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Collision')
+    );
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
+
+  it('should show nameOverride fields in mapping table', async () => {
+    const mockSchema = {
+      schemaVersion: 1.1,
+      entityName: 'Order',
+      description: 'Order entity',
+      primaryKey: { partitionKey: 'orderId' },
+      fields: [
+        { name: 'orderId', type: 'string', required: true },
+        { name: '2fa-code', nameOverride: 'twoFactorCode', type: 'string', required: false }
+      ]
+    };
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchema));
+    vi.mocked(path.resolve).mockReturnValue('/path/to/schema.bprint');
+    
+    const { validateSchema } = await import('@chaim-tools/chaim-bprint-spec');
+    vi.mocked(validateSchema).mockReturnValue({ ...mockSchema });
+
+    await validateCommand('/path/to/schema.bprint');
+
+    // Should show field mapping table with nameOverride
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Field mappings'));
+    expect(process.exit).not.toHaveBeenCalled();
+  });
 });

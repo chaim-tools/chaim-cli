@@ -20,6 +20,7 @@ import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE,
 } from '../config/types';
+import { resolveFieldNames, detectCollisions } from '../services/name-resolver';
 import * as path from 'path';
 
 interface GenerateOptions {
@@ -294,6 +295,20 @@ async function generateFromSnapshots(
     const resource = (firstSnap as any).resource || (firstSnap as any).dataStore;
     const tableName = resource.name || resource.tableName;
     validateTableKeyConsistency(tableSnapshots, tableName);
+  }
+
+  // Pre-validate field name collisions for each schema before generation
+  for (const snap of upsertSnapshots) {
+    if (snap.snapshot.schema?.fields) {
+      const resolved = resolveFieldNames(snap.snapshot.schema.fields, language);
+      const collisions = detectCollisions(resolved);
+      if (collisions.length > 0) {
+        for (const collision of collisions) {
+          console.error(chalk.red(`\n✗ Name collision in entity '${snap.entityName}': ${collision.message}`));
+        }
+        process.exit(1);
+      }
+    }
   }
 
   const results: { tableId: string; entities: string[]; success: boolean; error?: string }[] = [];

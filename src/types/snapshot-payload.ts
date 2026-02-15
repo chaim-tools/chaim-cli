@@ -23,6 +23,7 @@ export interface PrimaryKey {
  */
 export interface SchemaField {
   name: string;
+  nameOverride?: string;
   type: 'string' | 'number' | 'boolean' | 'timestamp';
   required?: boolean;
   default?: string | number | boolean;
