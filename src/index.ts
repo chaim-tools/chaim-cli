@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { generateCommand } from './commands/generate';
 import { validateCommand } from './commands/validate';
 import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
 import { cleanCommand } from './commands/clean';
 import chalk from 'chalk';
+
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
 
 /**
  * ==========================
@@ -41,7 +45,7 @@ const program = new Command();
 program
   .name('chaim')
   .description('Schema-driven code generation tool for DynamoDB')
-  .version('0.1.0');
+  .version(pkg.version);
 
 program
   .command('generate')
