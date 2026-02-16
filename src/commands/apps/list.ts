@@ -32,7 +32,7 @@ export function registerAppsListCommand(program: Command): Command {
     .description('List applications you can access')
     .option('--json', 'Output as JSON')
     .option('--limit <n>', 'Maximum number of apps to show', '20')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Check if authenticated (require auth)

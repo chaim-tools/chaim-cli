@@ -36,7 +36,7 @@ export function registerAuthLoginCommand(program: Command): Command {
     .description('Authenticate with Chaim (browser/device flow)')
     .option('--profile <name>', 'Profile name to store credentials under', 'default')
     .option('--no-browser', 'Use device code flow instead of browser')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Check if already logged in for this profile

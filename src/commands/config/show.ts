@@ -32,7 +32,7 @@ export function registerConfigShowCommand(program: Command): Command {
     .description('Print resolved configuration')
     .option('--json', 'Output as JSON')
     .option('--source', 'Show source of each value (global/repo/default)')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Load global config from ~/.chaim/config.json

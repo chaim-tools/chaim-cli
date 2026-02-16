@@ -429,7 +429,7 @@ describe('initCommand', () => {
       on: vi.fn()
     };
 
-    vi.mocked(spawn).mockImplementation((command: string, args: string[]) => {
+    vi.mocked(spawn).mockImplementation((command: string, _args: string[]) => {
       if (command === 'java') {
         return mockJavaProcess as any;
       } else if (command === 'aws') {
@@ -584,7 +584,7 @@ describe('initCommand', () => {
       on: vi.fn()
     };
 
-    vi.mocked(spawn).mockImplementation((command: string, args: string[]) => {
+    vi.mocked(spawn).mockImplementation((command: string, _args: string[]) => {
       if (command === 'java') {
         return mockJavaProcess as any;
       } else if (command === 'aws') {

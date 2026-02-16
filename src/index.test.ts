@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Command } from 'commander';
 
 // Mock the command modules
 vi.mock('./commands/generate', () => ({

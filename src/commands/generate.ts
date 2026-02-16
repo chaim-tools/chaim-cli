@@ -11,8 +11,6 @@ import {
 } from '../services/snapshot-discovery';
 import { getSnapshotBaseDir } from '../services/os-cache-paths';
 import {
-  DynamoDBMetadata,
-  StackContext,
   TableMetadata,
 } from '../types';
 import {
@@ -290,7 +288,7 @@ async function generateFromSnapshots(
   }
 
   // Validate key consistency for multi-entity tables BEFORE generation
-  for (const [tableId, tableSnapshots] of byTable) {
+  for (const [_tableId, tableSnapshots] of byTable) {
     const firstSnap = tableSnapshots[0].snapshot;
     const resource = (firstSnap as any).resource || (firstSnap as any).dataStore;
     const tableName = resource.name || resource.tableName;

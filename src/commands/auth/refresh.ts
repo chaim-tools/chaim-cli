@@ -33,7 +33,7 @@ export function registerAuthRefreshCommand(program: Command): Command {
     .command('refresh')
     .description('Manually refresh authentication tokens')
     .option('--profile <name>', 'Profile to refresh (default: active profile)')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Load profile and refresh token

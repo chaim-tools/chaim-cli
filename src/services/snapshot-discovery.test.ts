@@ -4,8 +4,6 @@ import * as path from 'path';
 import {
   discoverSnapshots,
   getLatestSnapshot,
-  resolveSnapshot,
-  resolveAllSnapshots,
   getSnapshotDirPath,
 } from './snapshot-discovery';
 

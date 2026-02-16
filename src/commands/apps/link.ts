@@ -33,7 +33,7 @@ export function registerAppsLinkCommand(program: Command): Command {
     .description('Associate CLI with a Chaim application')
     .argument('[appId]', 'Application ID to link (prompts if not provided)')
     .option('--force', 'Overwrite existing link without confirmation')
-    .action(async (appId, options) => {
+    .action(async (_appId, _options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Check if authenticated (require auth)

@@ -34,7 +34,7 @@ export function registerAuthLogoutCommand(program: Command): Command {
     .option('--profile <name>', 'Logout specific profile (default: active profile)')
     .option('--all', 'Logout all profiles')
     .option('--revoke', 'Also revoke tokens server-side')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Determine which profile(s) to logout

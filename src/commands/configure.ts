@@ -31,7 +31,7 @@ export function registerConfigureCommand(program: Command): Command {
     .option('--global', 'Configure global defaults (~/.chaim/config.json)')
     .option('--local', 'Configure repo defaults (./chaim.json)')
     .option('--non-interactive', 'Fail if input required (for scripting)')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Determine target config (global vs repo)

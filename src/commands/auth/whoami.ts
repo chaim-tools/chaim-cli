@@ -34,7 +34,7 @@ export function registerAuthWhoamiCommand(program: Command): Command {
     .command('whoami')
     .description('Display current authenticated user and context')
     .option('--profile <name>', 'Check specific profile instead of active')
-    .action(async (options) => {
+    .action(async (_options) => {
       console.log('Not implemented yet. See docs/CLI_ROADMAP.md');
       // Future implementation:
       // 1. Load active profile (or specified profile)
