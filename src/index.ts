@@ -8,6 +8,7 @@ import { validateCommand } from './commands/validate';
 import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
 import { cleanCommand } from './commands/clean';
+import { bumpCommand } from './commands/bump';
 import chalk from 'chalk';
 
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
@@ -87,6 +88,13 @@ program
   .option('--verbose', 'Show detailed output')
   .action(cleanCommand);
 
+program
+  .command('bump')
+  .description('Increment the schemaVersion in a .bprint file')
+  .argument('<schemaFile>', '.bprint file to version bump')
+  .option('--major', 'Major version bump (X.Y -> X+1.0) instead of minor (X.Y -> X.Y+1)')
+  .action(bumpCommand);
+
 /**
  * ==========================
  * Planned Command Registration
@@ -120,6 +128,7 @@ if (process.argv.length <= 2) {
   console.log('  init      - Verify and install all prerequisites');
   console.log('  generate  - Generate SDK code from CDK snapshot (default: java)');
   console.log('  validate  - Validate a .bprint schema file');
+  console.log('  bump      - Increment the schemaVersion in a .bprint file');
   console.log('  doctor    - Check system environment and dependencies');
   console.log('  clean     - Clean snapshot cache (remove old or stale snapshots)');
   console.log('');

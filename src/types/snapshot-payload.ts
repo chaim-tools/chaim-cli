@@ -58,7 +58,7 @@ export interface Annotations {
  * Schema v1.1 - flattened structure (no nested entity object).
  */
 export interface SchemaData {
-  schemaVersion: number;
+  schemaVersion: string;
   entityName: string;
   description: string;
   primaryKey: PrimaryKey;

@@ -1,33 +1,19 @@
 # chaim-cli
 
-A **schema-driven code generation tool** that transforms `.bprint` schema snapshots into complete SDKs with DynamoDB Mapper clients, DTOs, and configuration management. Currently supports **Java** (default), with more languages coming soon.
+The command-line tool that generates type-safe Java SDKs from your DynamoDB schema snapshots. It reads the local snapshots produced by `chaim-cdk`, groups entities by table, validates key consistency, and invokes the Java code generator to produce ready-to-use entity classes, repositories, validators, and configuration.
 
-## Prerequisite
+**npm**: [`@chaim-tools/chaim`](https://www.npmjs.com/package/@chaim-tools/chaim)
 
-> **IMPORTANT**: You must run `cdk synth` or `cdk deploy` in your CDK project before using this CLI.
+## Where This Fits
 
-```bash
-# In your CDK project directory
-cdk synth   # Creates LOCAL snapshot in OS cache
-# OR
-cdk deploy  # Creates LOCAL snapshot + publishes to Chaim SaaS
+```
+ .bprint file  ──>  chaim-cdk  ──>  chaim-cli  ──>  chaim-client-java
+                                        ^                    │
+                                        │                    v
+                                   YOU RUN THIS      Generated Java SDK
 ```
 
-The CLI reads snapshot files from the **OS cache** (`~/.chaim/cache/snapshots/`) produced by [chaim-cdk](https://github.com/chaim-tools/chaim-cdk). You can run the CLI from **any directory**.
-
-## Quick Start
-
-```bash
-# 1. In your CDK project, create a snapshot
-cd my-cdk-project
-cdk synth
-
-# 2. Generate SDK (run from your Java application directory)
-cd my-java-app
-chaim generate --package com.mycompany.myapp.model
-
-# That's it! Your Java SDK is ready in ./src/main/java/
-```
+The CLI sits between the CDK construct and the code generator. It discovers cached snapshots from your file system, resolves table metadata (including GSIs and LSIs), and delegates to `chaim-client-java` for Java source file generation. The generated code supports all `.bprint` field types including recursive nesting (maps within maps, lists of maps within maps) with no depth limit.
 
 ## Installation
 
@@ -35,76 +21,126 @@ chaim generate --package com.mycompany.myapp.model
 npm install -g @chaim-tools/chaim
 ```
 
-## System Requirements
+**Requirements**: Node.js 18+, Java 11+ (runtime for code generation)
 
-Run `chaim doctor` to verify your environment:
-
-```bash
-chaim doctor
-```
-
-**Required:**
-- Node.js v18+
-- Java 11+ (for code generation)
-- AWS CLI (configured)
-
-## CLI Commands
-
-### Generate SDK
+## Quick Start
 
 ```bash
-# Generate all entities from snapshots (defaults to Java)
+# 1. Synthesize your CDK project to create a local snapshot
+cd my-cdk-project
+cdk synth
+
+# 2. Generate the Java SDK (run from your Java application directory)
+cd ../my-java-app
 chaim generate --package com.mycompany.myapp.model
 
-# Explicitly specify language
-chaim generate --package com.mycompany.myapp.model --language java
-
-# Filter by CDK stack name
-chaim generate --package com.mycompany.myapp.model --stack MyStack
-
-# Custom output directory
-chaim generate --package com.mycompany.myapp.model --output ./generated
-
-# Skip environment checks
-chaim generate --package com.mycompany.myapp.model --skip-checks
+# Your Java SDK is now in ./src/main/java/
 ```
 
-**Options:**
+The CLI reads snapshots from the OS cache (`~/.chaim/cache/snapshots/`). You can run it from any directory.
 
-| Option | Required | Description | Default |
-|--------|----------|-------------|---------|
-| `--package` | **Yes** | Package name (e.g., `com.mycompany.myapp.model` for Java) | - |
-| `-l, --language` | No | Target language for code generation | java |
-| `--output` | No | Output directory | ./src/main/java |
-| `--stack` | No | Filter by CDK stack name | - |
-| `--snapshot-dir` | No | Override snapshot directory | OS cache |
-| `--skip-checks` | No | Skip environment checks | false |
+## CDK Prerequisites
 
-**Supported Languages:**
-- `java` (default) — generates Java DTOs, ChaimConfig, and ChaimMapperClient
+Before running `chaim generate`, your CDK project must produce valid snapshots via `cdk synth`. The CDK construct enforces two important safeguards:
 
-### Other Commands
+- **Field reference validation** — All DynamoDB key attributes (table PK/SK, GSI/LSI keys, TTL attribute) must exist as fields in the `.bprint` schema. Mismatches fail the CDK synth immediately with a descriptive error.
+- **Strict failure mode** — Deployment defaults to `STRICT`, meaning ingestion failures cause CloudFormation rollback. Use `FailureMode.BEST_EFFORT` explicitly if you want deployment to continue on ingestion errors.
+
+## Commands
+
+### `chaim generate`
+
+Generates Java SDK code from local snapshots.
 
 ```bash
-# Verify prerequisites
-chaim init
+chaim generate --package com.mycompany.myapp.model
+```
 
-# Validate a schema file
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--package <name>` | Yes | — | Java package name (e.g., `com.mycompany.myapp.model`) |
+| `-l, --language <lang>` | No | `java` | Target language |
+| `--output <dir>` | No | `./src/main/java` | Output directory |
+| `--stack <name>` | No | — | Filter snapshots by CDK stack name |
+| `--snapshot-dir <path>` | No | OS cache | Override snapshot directory |
+| `--skip-checks` | No | `false` | Skip environment validation |
+
+**What it does**:
+
+1. Scans the OS cache for snapshot files produced by `chaim-cdk`
+2. Filters by stack name (if provided) and discards DELETE-action snapshots
+3. Groups entities by physical DynamoDB table (using table ARN or composite key)
+4. Validates that all entities sharing a table have matching partition/sort key field names
+5. Detects field name collisions from `nameOverride` or auto-conversion
+6. Passes schemas and table metadata (including GSI/LSI definitions) to the Java generator. LSI metadata does not include `partitionKey` — the generator uses the table's own partition key since LSIs always share it
+7. Writes generated `.java` files to the output directory
+
+### `chaim validate`
+
+Validates a `.bprint` schema file and displays the field mapping table.
+
+```bash
 chaim validate ./schemas/user.bprint
+```
 
-# Check environment health
+### `chaim doctor`
+
+Checks your system environment for required dependencies.
+
+```bash
 chaim doctor
+```
+
+Verifies: Node.js version, Java installation, AWS CLI availability.
+
+### `chaim init`
+
+Verifies and optionally installs prerequisites.
+
+```bash
+chaim init              # Verify only
+chaim init --install    # Install missing dependencies
+```
+
+### `chaim bump`
+
+Increments the `schemaVersion` in a `.bprint` file.
+
+```bash
+chaim bump ./schemas/user.bprint            # minor bump: 1.3 -> 1.4
+chaim bump ./schemas/user.bprint --major    # major bump: 1.3 -> 2.0
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `<schemaFile>` | Yes | — | Path to the `.bprint` file |
+| `--major` | No | `false` | Major version bump instead of minor |
+
+The `schemaVersion` is a customer-controlled field. The Chaim system validates during `cdk deploy` that the version was bumped when schema content changes. Use this command to increment the version before deploying.
+
+### `chaim clean`
+
+Prunes old or stack-specific snapshots from the local cache.
+
+```bash
+chaim clean --all                   # Remove all snapshots
+chaim clean --stack MyStack         # Remove snapshots for a specific stack
+chaim clean --older-than 30         # Remove snapshots older than 30 days
+chaim clean --dry-run               # Show what would be deleted
 ```
 
 ## Snapshot Locations
 
-Snapshots are stored in a **global OS cache**, allowing the CLI to work from any directory.
+The CLI reads from the global OS cache, so it works regardless of your current directory.
 
-**Default locations:**
-- macOS/Linux: `~/.chaim/cache/snapshots/`
-- Windows: `%LOCALAPPDATA%/chaim/cache/snapshots/`
+| OS | Default Path |
+|----|--------------|
+| macOS / Linux | `~/.chaim/cache/snapshots/` |
+| Windows | `%LOCALAPPDATA%/chaim/cache/snapshots/` |
 
-**Directory structure:**
+Override with `CHAIM_SNAPSHOT_DIR` or `--snapshot-dir`.
+
+Directory structure:
 ```
 ~/.chaim/cache/snapshots/
 └── aws/
@@ -115,97 +151,306 @@ Snapshots are stored in a **global OS cache**, allowing the CLI to work from any
                     └── {resourceId}.json
 ```
 
-## Error: No Snapshot Found
-
-If you see "No snapshot found", **you need to create a snapshot first**. Snapshots are created by `chaim-cdk`:
-
-```bash
-# Navigate to your CDK project
-cd my-cdk-project
-
-# Create a snapshot
-cdk synth    # For development
-# OR
-cdk deploy   # For production
-
-# Then generate (from any directory)
-chaim generate --package com.mycompany.myapp.model
-```
-
-**Common causes:**
-- Haven't run `cdk synth` or `cdk deploy` yet
-- Filters (`--stack`) don't match existing snapshots
-- Snapshots in non-default location (use `--snapshot-dir`)
-
-**Tip:** The CLI shows existing snapshots that didn't match your filters, helping you adjust.
-
 ## Generated Output
 
+For a package `com.example.model` with `User` and `Order` entities on the same table:
+
 ```
-src/main/java/com/mycompany/myapp/model/
-├── Users.java              # Entity DTO
-├── config/
-│   └── ChaimConfig.java    # Table configuration
-└── mapper/
-    └── ChaimMapperClient.java  # DynamoDB mapper
-```
-
-### Using the Generated SDK
-
-```java
-// Create mapper client
-ChaimMapperClient mapper = ChaimConfig.createMapper();
-
-// Save entity
-User user = new User();
-user.setUserId("user-123");
-user.setEmail("john@example.com");
-mapper.save(user);
-
-// Find by ID
-Optional<User> found = mapper.findById(User.class, "user-123");
-```
-
-## Optional Configuration
-
-Create `chaim.json` to set defaults:
-
-```json
-{
-  "defaults": {
-    "package": "com.mycompany.myapp.model",
-    "output": "./src/main/java"
-  }
-}
-```
-
-Then run without arguments:
-```bash
-chaim generate
+src/main/java/com/example/model/
+├── User.java                          # Entity DTO (@DynamoDbBean + Lombok)
+├── Order.java                         # Entity DTO
+├── keys/
+│   ├── UserKeys.java                  # Key constants, INDEX_ constants, key() helper
+│   └── OrderKeys.java
+├── repository/
+│   ├── UserRepository.java            # save(), findByKey(), deleteByKey(), queryBy{Index}()
+│   └── OrderRepository.java
+├── validation/
+│   ├── UserValidator.java             # Required, constraint, and enum checks
+│   ├── OrderValidator.java
+│   └── ChaimValidationException.java  # Structured validation errors
+├── client/
+│   └── ChaimDynamoDbClient.java       # DI-friendly DynamoDB client wrapper
+└── config/
+    └── ChaimConfig.java               # Table constants, lazy client, repository factories
 ```
 
 ## Field Type Mappings
 
-| .bprint Type | Java Type |
-|--------------|-----------|
-| `string` | `String` |
-| `number` | `Double` |
-| `boolean` | `Boolean` |
-| `timestamp` | `Instant` |
+| .bprint Type | Java Type | Notes |
+|--------------|-----------|-------|
+| `string` | `String` | |
+| `number` | `Double` | |
+| `boolean` | `Boolean` | |
+| `timestamp` | `Instant` | `java.time.Instant` |
+| `list` (scalar) | `List<String>`, `List<Double>`, etc. | Parameterized by `items.type` |
+| `list` (map) | `List<{FieldName}Item>` | Inner `@DynamoDbBean` class |
+| `map` | `{FieldName}` (inner class) | Inner `@DynamoDbBean` class; supports recursive nesting |
+| `stringSet` | `Set<String>` | |
+| `numberSet` | `Set<Double>` | |
 
-## Related Packages
+Recursive nesting is fully supported. A `map` field can contain nested `map` or `list` fields, which generate further inner static classes. There is no hardcoded depth limit — the database itself is the guardrail.
 
-| Package | Purpose |
-|---------|---------|
-| [chaim-cdk](https://github.com/chaim-tools/chaim-cdk) | AWS CDK constructs (creates snapshots) |
-| [chaim-bprint-spec](https://github.com/chaim-tools/chaim-bprint-spec) | Schema specification |
-| [chaim-client-java](https://github.com/chaim-tools/chaim-client-java) | Java code generation |
+## Using the Generated Code
 
-## Getting Help
+### Add Dependencies to Your Java Project
 
-- **Issues**: [GitHub Issues](https://github.com/chaim-tools/chaim-cli/issues)
-- **Examples**: [chaim-examples](https://github.com/chaim-tools/chaim-examples)
+The generated code requires these dependencies (Gradle example):
 
----
+```kotlin
+dependencies {
+    implementation("software.amazon.awssdk:dynamodb-enhanced:2.21.+")
+    compileOnly("org.projectlombok:lombok:1.18.+")
+    annotationProcessor("org.projectlombok:lombok:1.18.+")
+}
+```
 
-**Chaim** means life, representing our mission: supporting the life (data) of software applications as they grow and evolve alongside businesses.
+### Basic Usage
+
+```java
+// Use the generated config for a singleton client
+UserRepository users = ChaimConfig.userRepository();
+
+// Save an entity (validates constraints automatically)
+User user = User.builder()
+    .userId("user-123")
+    .email("alice@example.com")
+    .isActive(true)
+    .build();
+users.save(user);
+
+// Find by key
+Optional<User> found = users.findByKey("user-123");
+
+// Delete
+users.deleteByKey("user-123");
+```
+
+### GSI/LSI Queries
+
+The generator produces typed query methods for every GSI and LSI on the table. Each index generates a PK-only method and a PK+SK overloaded method (when the index has a sort key).
+
+```java
+OrderRepository orders = ChaimConfig.orderRepository();
+
+// GSI query — uses the GSI's own partition key
+List<Order> customerOrders = orders.queryByCustomerIndex("customer-123");
+
+// GSI query with sort key — PK + SK overload
+List<Order> filtered = orders.queryByCustomerDateIndex("customer-123", "2024-01-15");
+
+// LSI query — uses the table's partition key (LSIs always share it)
+List<Order> sorted = orders.queryByAmountIndex("order-456");
+List<Order> ranged = orders.queryByAmountIndex("order-456", "100.00");
+```
+
+### Custom Client (Local DynamoDB, Testing)
+
+```java
+ChaimDynamoDbClient client = ChaimConfig.clientBuilder()
+    .endpoint("http://localhost:8000")
+    .build();
+UserRepository users = ChaimConfig.userRepository(client);
+```
+
+## Troubleshooting
+
+### "No snapshot found"
+
+You need to create a snapshot first by running `cdk synth` or `cdk deploy` in your CDK project:
+
+```bash
+cd my-cdk-project
+cdk synth
+```
+
+Then run `chaim generate` from any directory.
+
+### Stack filter does not match
+
+The CLI shows existing snapshots that did not match your `--stack` filter, helping you adjust the value.
+
+## Using in Your Application Codebase
+
+A typical project layout:
+
+```
+my-cdk-project/                       # CDK infrastructure
+├── schemas/
+│   ├── user.bprint
+│   └── order.bprint
+├── lib/my-stack.ts
+└── package.json
+
+my-java-app/                          # Java application
+├── src/main/java/com/example/model/  # ← generated by `chaim generate`
+│   ├── User.java
+│   ├── Order.java
+│   └── ...
+├── src/main/java/com/example/        # Your application code
+│   └── service/UserService.java
+├── build.gradle.kts
+└── ...
+```
+
+Run `cdk synth` once, then `chaim generate --package com.example.model` in your Java project. Re-run whenever you change a `.bprint` file or add a new entity.
+
+## Development
+
+### Prerequisites
+
+- **Node.js 18+** — required for building and running the CLI
+- **npm** — comes with Node.js
+
+### Setup
+
+Clone the repository and install dependencies:
+
+```bash
+npm install
+```
+
+Or use the included setup script, which validates your Node.js version, installs dependencies, and builds in one step:
+
+```bash
+npm run setup
+```
+
+### Building
+
+The CLI is written in TypeScript and compiles to `dist/` via the TypeScript compiler.
+
+```bash
+npm run build          # Compile TypeScript → dist/
+```
+
+To start from a clean state:
+
+```bash
+npm run clean          # Delete dist/
+npm run build          # Rebuild
+```
+
+The build emits CommonJS modules targeting ES2020 with declarations, declaration maps, and source maps (configured in `tsconfig.json`).
+
+### Running Locally (Development)
+
+You can run the CLI directly from source without compiling first:
+
+```bash
+npm run dev -- generate --package com.example.model
+```
+
+Or after building, run the compiled output:
+
+```bash
+npm start -- generate --package com.example.model
+# equivalent to: node dist/index.js generate --package com.example.model
+```
+
+### Testing
+
+Tests use [Vitest](https://vitest.dev/) and live alongside the source files (`*.test.ts`).
+
+```bash
+npm test               # Run all tests in watch mode
+```
+
+To run tests once (CI-friendly):
+
+```bash
+npx vitest run
+```
+
+To run a specific test file:
+
+```bash
+npx vitest run src/commands/generate.test.ts
+```
+
+Test files:
+
+| File | Covers |
+|------|--------|
+| `src/index.test.ts` | CLI entry point and command registration |
+| `src/commands/generate.test.ts` | `chaim generate` command |
+| `src/commands/validate.test.ts` | `chaim validate` command |
+| `src/commands/init.test.ts` | `chaim init` command |
+| `src/commands/doctor.test.ts` | `chaim doctor` command |
+| `src/services/snapshot-discovery.test.ts` | Snapshot file discovery logic |
+| `src/services/name-resolver.test.ts` | Field name resolution and collision detection |
+
+### Linting
+
+The project uses ESLint with TypeScript support.
+
+```bash
+npm run lint           # Check for lint errors
+npm run lint:fix       # Auto-fix lint errors
+```
+
+### Project Structure
+
+```
+chaim-cli/
+├── src/                      # TypeScript source
+│   ├── index.ts              # CLI entry point (Commander.js)
+│   ├── commands/             # Command implementations
+│   │   ├── generate.ts
+│   │   ├── validate.ts
+│   │   ├── init.ts
+│   │   ├── doctor.ts
+│   │   ├── bump.ts
+│   │   └── clean.ts
+│   └── services/             # Shared logic
+│       ├── snapshot-discovery.ts
+│       └── name-resolver.ts
+├── dist/                     # Compiled output (git-ignored)
+├── shared/scripts/setup.sh   # One-time setup helper
+├── tsconfig.json             # TypeScript configuration
+├── .eslintrc.js              # ESLint configuration
+└── package.json
+```
+
+## Publishing to npm
+
+Publishing is automated via GitHub Actions. The workflow triggers when you create a GitHub release.
+
+### Steps
+
+1. **Update the version** in `package.json`:
+
+```bash
+npm version patch   # 0.1.5 → 0.1.6
+npm version minor   # 0.1.5 → 0.2.0
+npm version major   # 0.1.5 → 1.0.0
+```
+
+2. **Push the commit and tag**:
+
+```bash
+git push && git push --tags
+```
+
+3. **Create a GitHub release** from the tag. Go to the repository's **Releases** page, click **Draft a new release**, select the tag, and publish.
+
+4. The `publish.yml` workflow runs automatically: checks out the code, runs `npm ci`, builds, and publishes to npm with `--access public`.
+
+### Prerequisites
+
+- The repository must have an `NPM_TOKEN` secret configured in **Settings > Secrets and variables > Actions**. This token must have publish permissions for the `@chaim-tools` scope.
+
+### Manual Publishing (Emergency)
+
+If the workflow fails or you need to publish from your local machine:
+
+```bash
+npm run build
+npm publish --access public
+```
+
+You must be logged in to npm (`npm login`) with publish access to the `@chaim-tools` scope.
+
+## License
+
+Apache-2.0
