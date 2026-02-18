@@ -329,13 +329,7 @@ export async function contextCommand(options: ContextOptions): Promise<void> {
   console.log(chalk.cyan('Chaim Agent Context'));
   console.log('');
 
-  // 1. Always write canonical file
-  const canonicalDir = path.join(cwd, CANONICAL_DIR);
-  fs.mkdirSync(canonicalDir, { recursive: true });
-  fs.writeFileSync(path.join(canonicalDir, CANONICAL_FILE), content, 'utf-8');
-  console.log(chalk.green(`  ${CANONICAL_DIR}/${CANONICAL_FILE}`));
-
-  // 2. Determine targets
+  // 1. Determine targets
   let targets: string[];
   if (options.agent === 'all') {
     targets = Object.keys(agents);
@@ -362,6 +356,19 @@ export async function contextCommand(options: ContextOptions): Promise<void> {
     }
   }
 
+  // 2. Write canonical file only when needed:
+  //    - No agent targets (fallback — canonical is the only output)
+  //    - Any target uses 'reference' strategy (e.g., aider points to the canonical file)
+  const needsCanonical = targets.length === 0
+    || targets.some(key => agents[key].strategy === 'reference');
+
+  if (needsCanonical) {
+    const canonicalDir = path.join(cwd, CANONICAL_DIR);
+    fs.mkdirSync(canonicalDir, { recursive: true });
+    fs.writeFileSync(path.join(canonicalDir, CANONICAL_FILE), content, 'utf-8');
+    console.log(chalk.green(`  ${CANONICAL_DIR}/${CANONICAL_FILE}`));
+  }
+
   // 3. Place for each target
   for (const key of targets) {
     const agent = agents[key];
@@ -374,7 +381,7 @@ export async function contextCommand(options: ContextOptions): Promise<void> {
   }
 
   // 4. Summary
-  const totalLocations = targets.length + 1;
+  const totalLocations = targets.length + (needsCanonical ? 1 : 0);
   console.log('');
   console.log(chalk.white(`Context v${getCliVersion()} written to ${totalLocations} location(s).`));
 

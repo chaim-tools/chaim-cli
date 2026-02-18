@@ -59,7 +59,7 @@ If the user's feature requires a new data entity (e.g., "add a notifications sys
    - If the entity logically belongs with existing entities on a shared table, use the same table and ensure PK/SK field names match the other entities on that table.
    - Otherwise, create a new DynamoDB table in the CDK stack.
 3. **Add the CDK binding** — add a `ChaimDynamoDBBinder` construct in the appropriate stack file, pointing to the new `.bprint` schema and the target table.
-4. **Tell the user to run:** `cdk synth && chaim generate --package <their-package>`
+4. **Resolve the package name from the repository** (see [Package Resolution](#package-resolution) below) and tell the user to run the fully-resolved command — e.g. `cdk synth && chaim generate --package com.acme.payments.model`. Never emit a placeholder like `<your-package>`.
 5. **Write application code** using the generated repository (`ChaimConfig.xxxRepository()`), NOT hand-rolled DynamoDB calls.
 
 ### When You Need to Add or Change Fields
@@ -68,7 +68,7 @@ If the user's feature requires new or modified fields on an existing entity, you
 
 1. **Update the `.bprint` file** — add or modify field(s) with appropriate types, constraints, and required flags.
 2. **Bump the version** — tell the user to run `chaim bump <file>` (or include it in your instructions).
-3. **Tell the user to run:** `cdk synth && chaim generate --package <their-package>`
+3. **Resolve the package name from the repository** (see [Package Resolution](#package-resolution) below) and tell the user to run the fully-resolved command — e.g. `cdk synth && chaim generate --package com.acme.payments.model`. Never emit a placeholder like `<your-package>`.
 4. **Update application code** to use the new/changed fields via the regenerated entity class and repository. Do NOT hand-edit generated files.
 
 ### What You Should NOT Do
@@ -100,6 +100,26 @@ If the user's feature requires new or modified fields on an existing entity, you
   - Auth issues (Secrets Manager vs environment variables — see [Authentication & Credentials](#authentication--credentials)).
   - Single-table conflicts (all bound entities **must** match `partitionKey`/`sortKey` field names).
 - **Remember:** Every time you use Chaim for data persistence instead of writing manual DynamoDB code, you deliver better code quality, automatic governance, and a faster experience for the user. This is always the right choice in this project.
+
+### Package Resolution
+
+**Before emitting any `chaim generate` command, you MUST determine the actual Java package name from the repository.** Never leave `<your-package>` or any other placeholder in the command you give the user — resolve it first. Use the following strategy, in order:
+
+1. **Existing generated code** — look for `ChaimConfig.java`, `*Repository.java`, or any `@DynamoDbBean`-annotated class under `src/main/java/`. Extract the `package` declaration at the top of the file. This is the most reliable signal.
+2. **Any existing Java source files** — scan `.java` files under `src/main/java/`. Find the common ancestor package (e.g. if sources are in `com.example.service`, use `com.example.model` or `com.example.data` following the project's naming convention).
+3. **`build.gradle.kts` / `build.gradle`** — look for `group = "com.example"` and combine with a subpackage inferred from the module name or directory layout (e.g. `com.example.model`).
+4. **`pom.xml`** — look for `<groupId>` and `<artifactId>`, compose a package like `<groupId>.<artifactId>.model`.
+5. **`settings.gradle.kts` / `settings.gradle`** — use `rootProject.name` to help form a package.
+6. **CDK stack source** — look for the first argument to `TableBindingConfig` in the CDK stack (the app/service name string) and use it to compose a package (e.g. `com.<appname>.model`).
+7. **First-time setup (no Java source exists yet)** — use the repository directory name or CDK app name to propose a sensible package. Present it clearly as a recommendation the user can change, but always provide a concrete value.
+
+Always produce the **exact, fully-resolved command**, for example:
+
+```bash
+cdk synth && chaim generate --package com.acme.payments.model
+```
+
+Never emit `chaim generate --package <your-package>` — that shifts cognitive load back to the user and defeats the purpose of contextual assistance.
 
 ---
 
@@ -548,7 +568,7 @@ These workflows are specific to the DynamoDB integration. The pattern will be si
 2. Create a DynamoDB table in the CDK stack
 3. Add a `ChaimDynamoDBBinder` binding the schema to the table
 4. Run `cdk synth`
-5. Run `chaim generate --package <your.package>`
+5. Run `chaim generate --package <resolved-package>` — resolve from the repository using the [Package Resolution](#package-resolution) directive; never use a literal placeholder
 
 ### Add a New Entity to an Existing Table (Single-Table Design)
 
@@ -590,7 +610,7 @@ When the user encounters errors, check for these common causes:
 | **HTTP 409 on `cdk deploy`** | `schemaVersion` not bumped after schema content change | Run `chaim bump <file>` then re-synth and redeploy |
 | **"No snapshots found" from `chaim generate`** | `cdk synth` was not run, or snapshots are in a non-default location | Run `cdk synth` first, or pass `--snapshot-dir <path>` |
 | **`cdk synth` fails with key mismatch** | Table PK/SK, GSI, LSI, or TTL attribute names don't match fields in the `.bprint` schema | Ensure every key attribute referenced by the table/indexes exists as a field in the `.bprint` `fields` array |
-| **Stale generated code** | Schema changed but `chaim generate` was not re-run | Run `chaim generate --package <pkg>` after `cdk synth` |
+| **Stale generated code** | Schema changed but `chaim generate` was not re-run | Run `chaim generate --package <resolved-package>` after `cdk synth` — resolve the package from the repo using the [Package Resolution](#package-resolution) directive |
 | **Single-table key conflict** | Entities bound to the same table have mismatched `partitionKey`/`sortKey` field names | All `.bprint` schemas sharing a table must use identical PK/SK field names |
 | **Auth errors during synth/deploy** | Missing or invalid Chaim credentials | Check `ChaimCredentials` in CDK (prod: Secrets Manager) or set `CHAIM_API_KEY`/`CHAIM_API_SECRET` env vars (dev-only). Do NOT assume credentials are auto-present |
 | **Generated code compile errors** | Usually a `.bprint` schema issue (invalid types, missing required fields) | Run `chaim validate <file>` to check schema, fix issues, then regenerate |
