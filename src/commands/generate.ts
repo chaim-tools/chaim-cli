@@ -276,10 +276,28 @@ async function generateFromSnapshots(
     console.log(chalk.gray(`\nSkipping ${skippedCount} DELETE snapshot(s) - code generation only processes UPSERT actions\n`));
   }
 
+  // Deduplicate by bindingId (stable across accounts and synths).
+  // Snapshots are already sorted newest-first so the first occurrence of each
+  // bindingId is always the most recent — local `cdk synth` beats a stale
+  // deployed snapshot regardless of which accountId directory it lives under.
+  const seenBindingIds = new Set<string>();
+  const dedupedSnapshots = upsertSnapshots.filter(snap => {
+    const bindingId = (snap.snapshot as any).identity?.bindingId
+      ?? `${snap.stackName}:${snap.entityName}`;  // fallback for pre-v3 snapshots
+    if (seenBindingIds.has(bindingId)) return false;
+    seenBindingIds.add(bindingId);
+    return true;
+  });
+
+  if (dedupedSnapshots.length < upsertSnapshots.length) {
+    const dupes = upsertSnapshots.length - dedupedSnapshots.length;
+    console.log(chalk.gray(`Deduplicated ${dupes} older snapshot(s) — keeping newest per entity.\n`));
+  }
+
   // Group snapshots by table identity (ARN or composite key)
   // This ensures multiple entities for the same physical table are generated together
   const byTable = new Map<string, ResolvedSnapshot[]>();
-  for (const snap of upsertSnapshots) {
+  for (const snap of dedupedSnapshots) {
     const tableId = getTableIdentity(snap);
     if (!byTable.has(tableId)) {
       byTable.set(tableId, []);
@@ -296,7 +314,7 @@ async function generateFromSnapshots(
   }
 
   // Pre-validate field name collisions for each schema before generation
-  for (const snap of upsertSnapshots) {
+  for (const snap of dedupedSnapshots) {
     if (snap.snapshot.schema?.fields) {
       const resolved = resolveFieldNames(snap.snapshot.schema.fields, language);
       const collisions = detectCollisions(resolved);
