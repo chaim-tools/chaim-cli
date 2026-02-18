@@ -129,6 +129,45 @@ chaim clean --older-than 30         # Remove snapshots older than 30 days
 chaim clean --dry-run               # Show what would be deleted
 ```
 
+### `chaim context`
+
+Downloads an AI agent context file that teaches coding agents how to use the Chaim toolchain in your project.
+
+```bash
+chaim context                         # Write .chaim/CHAIM_AGENT_CONTEXT.md; auto-detect agents
+chaim context --agent cursor          # Also write .cursor/rules/chaim.md
+chaim context --agent all             # Write to all supported agent locations
+chaim context --no-auto               # Only write canonical file, skip auto-detection
+chaim context --remove                # Remove Chaim context from all locations
+chaim context --list-agents           # Show supported agents and detection status
+```
+
+| Option | Description |
+|--------|-------------|
+| `--agent <name>` | Target a specific AI tool: `cursor`, `copilot`, `claude`, `windsurf`, `aider`, `generic`, `all` |
+| `--no-auto` | Skip auto-detection; only write the canonical `.chaim/CHAIM_AGENT_CONTEXT.md` |
+| `--remove` | Remove managed Chaim context blocks from all agent locations |
+| `--list-agents` | Show supported agents, their detection status, and file paths |
+
+**What it does**:
+
+1. Writes a comprehensive guide to `.chaim/CHAIM_AGENT_CONTEXT.md` (always)
+2. Auto-detects which AI tools are present (`.cursor/`, `CLAUDE.md`, `.windsurfrules`, etc.)
+3. Places the context into each detected tool's config location
+
+**Supported agents and placement strategy**:
+
+| Agent | File | Strategy |
+|-------|------|----------|
+| `cursor` | `.cursor/rules/chaim.md` | Dedicated file (overwrite) |
+| `copilot` | `.github/copilot-instructions.md` | Append managed block |
+| `claude` | `CLAUDE.md` | Append managed block |
+| `windsurf` | `.windsurfrules` | Append managed block |
+| `aider` | `.aider.conf.yml` | Add read-only reference |
+| `generic` | `AGENTS.md` | Append managed block |
+
+For append targets, the content is wrapped in HTML comment fences (`<!-- CHAIM_AGENT_CONTEXT_START -->` / `<!-- CHAIM_AGENT_CONTEXT_END -->`). Running the command again replaces the existing block in-place (idempotent). Existing content in those files is preserved.
+
 ## Snapshot Locations
 
 The CLI reads from the global OS cache, so it works regardless of your current directory.
@@ -377,6 +416,7 @@ Test files:
 | `src/commands/validate.test.ts` | `chaim validate` command |
 | `src/commands/init.test.ts` | `chaim init` command |
 | `src/commands/doctor.test.ts` | `chaim doctor` command |
+| `src/commands/context.test.ts` | `chaim context` command |
 | `src/services/snapshot-discovery.test.ts` | Snapshot file discovery logic |
 | `src/services/name-resolver.test.ts` | Field name resolution and collision detection |
 
@@ -401,12 +441,16 @@ chaim-cli/
 │   │   ├── init.ts
 │   │   ├── doctor.ts
 │   │   ├── bump.ts
-│   │   └── clean.ts
+│   │   ├── clean.ts
+│   │   └── context.ts
 │   └── services/             # Shared logic
 │       ├── snapshot-discovery.ts
 │       └── name-resolver.ts
 ├── dist/                     # Compiled output (git-ignored)
-├── shared/scripts/setup.sh   # One-time setup helper
+├── shared/
+│   ├── scripts/setup.sh      # One-time setup helper
+│   └── templates/
+│       └── CHAIM_AGENT_CONTEXT.md  # Bundled AI agent context template
 ├── tsconfig.json             # TypeScript configuration
 ├── .eslintrc.js              # ESLint configuration
 └── package.json

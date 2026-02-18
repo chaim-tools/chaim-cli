@@ -9,6 +9,7 @@ import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
 import { cleanCommand } from './commands/clean';
 import { bumpCommand } from './commands/bump';
+import { contextCommand } from './commands/context';
 import chalk from 'chalk';
 
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
@@ -95,6 +96,15 @@ program
   .option('--major', 'Major version bump (X.Y -> X+1.0) instead of minor (X.Y -> X.Y+1)')
   .action(bumpCommand);
 
+program
+  .command('context')
+  .description('Download AI agent context for using Chaim in your project')
+  .option('--agent <name>', 'Target a specific AI tool: cursor, copilot, claude, windsurf, aider, generic, all')
+  .option('--no-auto', 'Skip auto-detection; only write canonical .chaim/ file')
+  .option('--remove', 'Remove managed Chaim context from all agent locations')
+  .option('--list-agents', 'Show supported agents, detection status, and file paths')
+  .action(contextCommand);
+
 /**
  * ==========================
  * Planned Command Registration
@@ -131,6 +141,7 @@ if (process.argv.length <= 2) {
   console.log('  bump      - Increment the schemaVersion in a .bprint file');
   console.log('  doctor    - Check system environment and dependencies');
   console.log('  clean     - Clean snapshot cache (remove old or stale snapshots)');
+  console.log('  context   - Download AI agent context for using Chaim in your project');
   console.log('');
   console.log('Use \'chaim <command> --help\' for more information');
   process.exit(0);
